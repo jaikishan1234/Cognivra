@@ -1,0 +1,94 @@
+# =========================
+# Dependencies
+# =========================
+node_modules/
+jspm_packages/
+
+# =========================
+# Environment variables
+# =========================
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# =========================
+# Logs
+# =========================
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# =========================
+# Runtime files
+# =========================
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# =========================
+# Build / production
+# =========================
+dist/
+build/
+out/
+.next/
+.nuxt/
+.svelte-kit/
+coverage/
+
+# =========================
+# Frontend caches
+# =========================
+.cache/
+.parcel-cache/
+.eslintcache
+.stylelintcache
+
+# =========================
+# OS files
+# =========================
+.DS_Store
+Thumbs.db
+
+# =========================
+# IDE / Editors
+# =========================
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# =========================
+# Testing
+# =========================
+coverage/
+.nyc_output/
+
+# =========================
+# Misc
+# =========================
+*.tgz
+*.tmp
+*.temp
+
+# =========================
+# Database
+# =========================
+*.sqlite
+*.sqlite3
+
+# =========================
+# Docker (optional)
+# =========================
+docker-compose.override.yml
+
+# =========================
+# TypeScript
+# =========================
+*.tsbuildinfo
