@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react'
 import ReactMarkdown from 'react-markdown'
 import { useSelector } from 'react-redux'
 import { useChat } from '../hooks/useChat'
+import remarkGfm from 'remark-gfm'
 
 
 const Dashboard = () => {
@@ -28,7 +29,7 @@ const Dashboard = () => {
   }
 
   const openChat = (chatId) => {
-    chat.handleOpenChat(chatId)
+    chat.handleOpenChat(chatId,chats)
   }
 
   return (
@@ -59,7 +60,7 @@ const Dashboard = () => {
                 key={message.id}
                 className={`max-w-[82%] w-fit rounded-2xl px-4 py-3 text-sm md:text-base ${message.role === 'user'
                     ? 'ml-auto rounded-br-none bg-white/12 text-white'
-                    : 'mr-auto border border-white/25 bg-[#0f1626] text-white/90'
+                    : 'mr-auto border-none text-white/90'
                   }`}
               >
                 {message.role === 'user' ? (
@@ -73,6 +74,7 @@ const Dashboard = () => {
                       code: ({ children }) => <code className='rounded bg-white/10 px-1 py-0.5'>{children}</code>,
                       pre: ({ children }) => <pre className='mb-2 overflow-x-auto rounded-xl bg-black/30 p-3'>{children}</pre>
                     }}
+                    remarkPlugins={[remarkGfm]}
                   >
                     {message.content}
                   </ReactMarkdown>
