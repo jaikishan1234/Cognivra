@@ -1,5 +1,5 @@
 {
-  "name": "perplexity",
+  "name": "Cognivra",
   "version": "1.0.0",
   "type": "module",
   "main": "index.js",
@@ -12,7 +12,9 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "@langchain/cohere": "^1.0.4",
     "@langchain/google-genai": "^2.1.26",
+    "@langchain/groq": "^1.2.0",
     "@langchain/mistralai": "^1.0.7",
     "@tavily/core": "^0.7.2",
     "bcryptjs": "^3.0.3",
