@@ -34,6 +34,7 @@ const Dashboard = () => {
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const profileMenuRef = useRef(null);
   const user = useSelector((state) => state.auth.user);
+  const isLoading = useSelector((state) => state.chat.isLoading);
 
   useEffect(() => {
     chat.handleInitializeSocket();
@@ -117,24 +118,24 @@ const Dashboard = () => {
             {/* Popup menu — shows above the card */}
             {profileMenuOpen && (
               <div className="absolute bottom-14 left-0 right-0 rounded-xl border border-white/10 bg-[#0e1117] overflow-hidden shadow-xl">
-    <button
-        onClick={() => {
-            auth.handleLogout();
-            setProfileMenuOpen(false);
-        }}
-        className="flex w-full items-center gap-2 px-3 py-2 text-sm text-white/60 hover:text-white hover:bg-white/5 transition"
-    >
-        <LogOut size={14} />
-        Logout
-    </button>
-</div>
+                <button
+                  onClick={() => {
+                    auth.handleLogout();
+                    setProfileMenuOpen(false);
+                  }}
+                  className="flex w-full items-center gap-2 px-3 py-2 text-sm text-white/60 hover:text-white hover:bg-white/5 transition"
+                >
+                  <LogOut size={14} />
+                  Logout
+                </button>
+              </div>
             )}
 
             {/* Profile card */}
             <button
               onClick={() => setProfileMenuOpen(!profileMenuOpen)}
               className="flex w-full items-center gap-2 px-3 py-2 text-sm text-white/60 hover:text-white hover:bg-white/5 transition rounded-lg"
-              >
+            >
               {/* Avatar circle */}
               <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white/10 text-xs font-semibold text-white uppercase">
                 {user?.username?.[0] || "U"}
@@ -166,6 +167,14 @@ const Dashboard = () => {
               <div className="flex flex-1 flex-col items-center justify-center gap-3 text-white/30 h-full">
                 <MessageSquare size={48} strokeWidth={1} />
                 <p className="text-lg">Ask anything to get started</p>
+              </div>
+            )}
+
+            {/* Loading state when opening existing chat */}
+            {isLoading && currentChatId && (
+              <div className="flex flex-1 flex-col items-center justify-center gap-3 text-white/30 h-full">
+                <div className="h-5 w-5 animate-spin rounded-full border-2 border-white/20 border-t-white/60" />
+                <p className="text-sm">Loading messages...</p>
               </div>
             )}
 

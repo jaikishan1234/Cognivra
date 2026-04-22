@@ -61,7 +61,9 @@ export const useChat = () => {
 
     async function handleOpenChat(chatId, chats) {
         try {
+            dispatch(setCurrentChatId(chatId)); // set chat immediately so UI switches
             if (chats[chatId]?.messages.length === 0) {
+                dispatch(setLoading(true)); // show loading while fetching messages
                 const data = await getMessages(chatId);
                 const { messages } = data;
                 dispatch(addMessages({
@@ -72,9 +74,10 @@ export const useChat = () => {
                     }))
                 }));
             }
-            dispatch(setCurrentChatId(chatId));
         } catch (err) {
             dispatch(setError(err.response?.data?.message || "Failed to open chat"));
+        } finally {
+            dispatch(setLoading(false));
         }
     }
 
