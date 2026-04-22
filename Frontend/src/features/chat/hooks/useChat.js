@@ -1,47 +1,48 @@
-import { initializeSocketConnection } from "../service/chat.socket";
-import { sendMessage, getChats, getMessages } from "../service/chat.api";
-import { setChats, setCurrentChatId, setError, setLoading, createNewChat, addNewMessage, addMessages } from "../chat.slice";
-import { useDispatch } from "react-redux";
+import { initializeSocketConnection, sendMessageViaSocket } from "../service/chat.socket";
+import { getChats, getMessages } from "../service/chat.api";
+import { setChats, setCurrentChatId, setError, setLoading, createNewChat, addNewMessage, addMessages, setPendingMessage } from "../chat.slice.js";
+import { useDispatch, useSelector } from "react-redux";
 
 export const useChat = () => {
-    const dispatch = useDispatch()
+    const dispatch = useDispatch();
+    const user = useSelector((state) => state.auth.user);
 
-    async function handleSendMessage({ message, chatId, model = "mistral" }) {
-        try {
-            dispatch(setLoading(true))
-            const data = await sendMessage({ message, chatId, model })
-            const { chat, aiMessage } = data
+    // Initialize socket and join user room
+    function handleInitializeSocket() {
+        if (user?._id) {
+            initializeSocketConnection(user._id);
+        }
+    }
 
-            if (!chatId) {
-                dispatch(createNewChat({
-                    chatId: chat._id,
-                    title: chat.title,
-                }))
-            }
+    function handleSendMessage({ message, chatId, model = "mistral" }) {
+        if (!user?._id) return;
 
+        if (chatId) {
+            // Existing chat — add user message to Redux immediately
             dispatch(addNewMessage({
-                chatId: chatId || chat._id,
+                chatId,
                 content: message,
                 role: "user",
-            }))
-            dispatch(addNewMessage({
-                chatId: chatId || chat._id,
-                content: aiMessage.content,
-                role: aiMessage.role,
-            }))
-            dispatch(setCurrentChatId(chatId || chat._id))  
-        } catch (err) {
-            dispatch(setError(err.response?.data?.message || "Failed to send message"))
-        } finally {
-            dispatch(setLoading(false))
+            }));
+        } else {
+            // New chat — store message as pending until newChat event fires
+            dispatch(setPendingMessage(message));
         }
+
+        // Send to backend via socket
+        sendMessageViaSocket({
+            message,
+            chatId: chatId || null,
+            model,
+            userId: user._id,
+        });
     }
 
     async function handleGetChats() {
         try {
-            dispatch(setLoading(true))
-            const data = await getChats()
-            const { chats } = data
+            dispatch(setLoading(true));
+            const data = await getChats();
+            const { chats } = data;
             dispatch(setChats(chats.reduce((acc, chat) => {
                 acc[chat._id] = {
                     id: chat._id,
@@ -49,41 +50,40 @@ export const useChat = () => {
                     messages: [],
                     lastUpdated: chat.updatedAt,
                 }
-                return acc
-            }, {})))
+                return acc;
+            }, {})));
         } catch (err) {
-            dispatch(setError(err.response?.data?.message || "Failed to get chats"))
+            dispatch(setError(err.response?.data?.message || "Failed to get chats"));
         } finally {
-            dispatch(setLoading(false))
+            dispatch(setLoading(false));
         }
     }
 
     async function handleOpenChat(chatId, chats) {
         try {
             if (chats[chatId]?.messages.length === 0) {
-                const data = await getMessages(chatId)
-                const { messages } = data
+                const data = await getMessages(chatId);
+                const { messages } = data;
                 dispatch(addMessages({
                     chatId,
                     messages: messages.map(msg => ({
                         content: msg.content,
                         role: msg.role,
                     }))
-                }))
+                }));
             }
-            dispatch(setCurrentChatId(chatId))
+            dispatch(setCurrentChatId(chatId));
         } catch (err) {
-            dispatch(setError(err.response?.data?.message || "Failed to open chat"))
+            dispatch(setError(err.response?.data?.message || "Failed to open chat"));
         }
     }
 
     function handleNewChat() {
-        dispatch(setCurrentChatId(null))
+        dispatch(setCurrentChatId(null));
     }
-        
 
     return {
-        initializeSocketConnection,
+        handleInitializeSocket,
         handleSendMessage,
         handleGetChats,
         handleOpenChat,

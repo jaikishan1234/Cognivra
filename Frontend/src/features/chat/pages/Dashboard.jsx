@@ -19,11 +19,12 @@ const Dashboard = () => {
   const [modelDropdownOpen, setModelDropdownOpen] = useState(false);
   const chats = useSelector((state) => state.chat.chats);
   const currentChatId = useSelector((state) => state.chat.currentChatId);
-  const isLoading = useSelector((state) => state.chat.isLoading);
+  const isStreaming = useSelector((state) => state.chat.isStreaming);
   const messagesEndRef = useRef(null);
+  const modelDropdownRef = useRef(null);
 
   useEffect(() => {
-    chat.initializeSocketConnection();
+    chat.handleInitializeSocket();
     chat.handleGetChats();
   }, []);
 
@@ -31,10 +32,26 @@ const Dashboard = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [chats, currentChatId]);
 
+  useEffect(() => {
+    function handleClickOutside(e) {
+      if (
+        modelDropdownRef.current &&
+        !modelDropdownRef.current.contains(e.target)
+      ) {
+        setModelDropdownOpen(false);
+      }
+    }
+
+    document.addEventListener("mousedown", handleClickOutside);
+
+    // Cleanup on unmount
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
   const handleSubmitMessage = (e) => {
     e?.preventDefault();
     const trimmedMessage = chatInput.trim();
-    if (!trimmedMessage || isLoading) return;
+    if (!trimmedMessage || isStreaming) return; // use isStreaming
     chat.handleSendMessage({
       message: trimmedMessage,
       chatId: currentChatId,
@@ -135,7 +152,7 @@ const Dashboard = () => {
             ))}
 
             {/* Loading dots */}
-            {isLoading && (
+            {isStreaming && (
               <div className="mr-auto flex gap-1 px-4 py-3">
                 <span className="h-2 w-2 animate-bounce rounded-full bg-white/40 [animation-delay:0ms]"></span>
                 <span className="h-2 w-2 animate-bounce rounded-full bg-white/40 [animation-delay:150ms]"></span>
@@ -173,7 +190,7 @@ const Dashboard = () => {
                 {/* Right — model + mic/send */}
                 <div className="flex items-center gap-2">
                   {/* Model dropdown */}
-                  <div className="relative">
+                  <div className="relative" ref={modelDropdownRef}>
                     <button
                       type="button"
                       onClick={() => setModelDropdownOpen(!modelDropdownOpen)}
@@ -221,7 +238,7 @@ const Dashboard = () => {
                     <button
                       type="button"
                       onClick={handleSubmitMessage}
-                      disabled={isLoading}
+                      disabled={isStreaming}
                       className="flex h-8 w-8 items-center justify-center rounded-full bg-white text-black transition hover:bg-white/80 disabled:opacity-25 disabled:cursor-not-allowed"
                     >
                       <ArrowUp size={16} />

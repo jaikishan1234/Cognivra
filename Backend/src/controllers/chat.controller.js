@@ -1,4 +1,4 @@
-import { generateResponse, generateChatTitle } from "../services/ai.service.js";
+import { generateChatTitle } from "../services/ai.service.js";
 import chatModel from "../models/chat.model.js"
 import messageModel from "../models/message.model.js";
 
