@@ -3,7 +3,15 @@ import ReactMarkdown from "react-markdown";
 import { useSelector } from "react-redux";
 import { useChat } from "../hooks/useChat";
 import remarkGfm from "remark-gfm";
-import { Plus, Mic, ArrowUp, ChevronDown, MessageSquare } from "lucide-react";
+import { useAuth } from "../../auth/hook/useAuth";
+import {
+  Plus,
+  Mic,
+  ArrowUp,
+  ChevronDown,
+  MessageSquare,
+  LogOut,
+} from "lucide-react";
 
 const MODELS = [
   { value: "mistral", label: "Mistral" },
@@ -22,6 +30,10 @@ const Dashboard = () => {
   const isStreaming = useSelector((state) => state.chat.isStreaming);
   const messagesEndRef = useRef(null);
   const modelDropdownRef = useRef(null);
+  const auth = useAuth();
+  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+  const profileMenuRef = useRef(null);
+  const user = useSelector((state) => state.auth.user);
 
   useEffect(() => {
     chat.handleInitializeSocket();
@@ -40,11 +52,15 @@ const Dashboard = () => {
       ) {
         setModelDropdownOpen(false);
       }
+      // Close profile menu on outside click
+      if (
+        profileMenuRef.current &&
+        !profileMenuRef.current.contains(e.target)
+      ) {
+        setProfileMenuOpen(false);
+      }
     }
-
     document.addEventListener("mousedown", handleClickOutside);
-
-    // Cleanup on unmount
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
@@ -94,6 +110,50 @@ const Dashboard = () => {
                 <span className="truncate flex-1">{c.title}</span>
               </button>
             ))}
+          </div>
+
+          {/* Profile card at bottom of sidebar */}
+          <div className="relative mt-auto" ref={profileMenuRef}>
+            {/* Popup menu — shows above the card */}
+            {profileMenuOpen && (
+              <div className="absolute bottom-14 left-0 right-0 rounded-xl border border-white/10 bg-[#0e1117] overflow-hidden shadow-xl">
+    <button
+        onClick={() => {
+            auth.handleLogout();
+            setProfileMenuOpen(false);
+        }}
+        className="flex w-full items-center gap-2 px-3 py-2 text-sm text-white/60 hover:text-white hover:bg-white/5 transition"
+    >
+        <LogOut size={14} />
+        Logout
+    </button>
+</div>
+            )}
+
+            {/* Profile card */}
+            <button
+              onClick={() => setProfileMenuOpen(!profileMenuOpen)}
+              className="flex w-full items-center gap-2 px-3 py-2 text-sm text-white/60 hover:text-white hover:bg-white/5 transition rounded-lg"
+              >
+              {/* Avatar circle */}
+              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white/10 text-xs font-semibold text-white uppercase">
+                {user?.username?.[0] || "U"}
+              </div>
+
+              {/* Username + plan */}
+              <div className="flex flex-col items-start min-w-0">
+                <span className="truncate text-sm font-medium text-white/80">
+                  {user?.username || "User"}
+                </span>
+                <span className="text-xs text-white/30">Free Plan</span>
+              </div>
+
+              {/* Chevron */}
+              <ChevronDown
+                size={13}
+                className={`ml-auto shrink-0 text-white/30 transition-transform ${profileMenuOpen ? "rotate-180" : ""}`}
+              />
+            </button>
           </div>
         </aside>
 
