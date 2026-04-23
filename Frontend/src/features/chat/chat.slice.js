@@ -7,7 +7,7 @@ const chatSlice = createSlice({
         currentChatId: null,
         isLoading: false,
         isStreaming: false,
-        pendingMessage: null, // new — stores message for new chats
+        pendingMessage: null,
         error: null,
     },
     reducers: {
@@ -40,11 +40,9 @@ const chatSlice = createSlice({
         setError: (state, action) => {
             state.error = action.payload;
         },
-        // Store pending message for new chats
         setPendingMessage: (state, action) => {
             state.pendingMessage = action.payload;
         },
-        // Clear pending message after it's been added
         clearPendingMessage: (state) => {
             state.pendingMessage = null;
         },
@@ -71,6 +69,13 @@ const chatSlice = createSlice({
         stopStreaming: (state) => {
             state.isStreaming = false;
         },
+        removeChat: (state, action) => {
+            const chatId = action.payload;
+            delete state.chats[chatId];
+            if (state.currentChatId === chatId) {
+                state.currentChatId = null;
+            }
+        },
     }
 });
 
@@ -87,6 +92,7 @@ export const {
     stopStreaming,
     setPendingMessage,
     clearPendingMessage,
+    removeChat,
 } = chatSlice.actions;
 
 export default chatSlice.reducer;

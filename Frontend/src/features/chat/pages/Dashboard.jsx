@@ -11,6 +11,7 @@ import {
   ChevronDown,
   MessageSquare,
   LogOut,
+  Trash2,
 } from "lucide-react";
 
 const MODELS = [
@@ -53,7 +54,6 @@ const Dashboard = () => {
       ) {
         setModelDropdownOpen(false);
       }
-      // Close profile menu on outside click
       if (
         profileMenuRef.current &&
         !profileMenuRef.current.contains(e.target)
@@ -68,7 +68,7 @@ const Dashboard = () => {
   const handleSubmitMessage = (e) => {
     e?.preventDefault();
     const trimmedMessage = chatInput.trim();
-    if (!trimmedMessage || isStreaming) return; // use isStreaming
+    if (!trimmedMessage || isStreaming) return;
     chat.handleSendMessage({
       message: trimmedMessage,
       chatId: currentChatId,
@@ -96,26 +96,42 @@ const Dashboard = () => {
 
           <div className="flex-1 space-y-1 overflow-y-auto">
             {Object.values(chats).map((c, index) => (
-              <button
-                onClick={() => chat.handleOpenChat(c.id, chats)}
+              <div
                 key={index}
-                type="button"
-                className={`group flex w-full items-center gap-2 cursor-pointer rounded-xl px-3 py-2 text-left text-sm font-medium transition
-                                    ${
-                                      currentChatId === c.id
-                                        ? "bg-white/10 text-white"
-                                        : "text-white/50 hover:bg-white/5 hover:text-white"
-                                    }`}
+                className={`group flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium transition
+                  ${
+                    currentChatId === c.id
+                      ? "bg-white/10 text-white"
+                      : "text-white/50 hover:bg-white/5 hover:text-white"
+                  }`}
               >
-                <MessageSquare size={14} className="shrink-0 opacity-60" />
-                <span className="truncate flex-1">{c.title}</span>
-              </button>
+                {/* Chat button — takes all available space */}
+                <button
+                  onClick={() => chat.handleOpenChat(c.id, chats)}
+                  type="button"
+                  className="flex flex-1 items-center gap-2 min-w-0 text-left cursor-pointer"
+                >
+                  <MessageSquare size={14} className="shrink-0 opacity-60" />
+                  <span className="truncate flex-1">{c.title}</span>
+                </button>
+
+                {/* Trash icon — only visible on hover */}
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    chat.handleDeleteChat(c.id);
+                  }}
+                  className="shrink-0 opacity-0 group-hover:opacity-100 text-white/30 hover:text-red-400 transition"
+                >
+                  <Trash2 size={14} />
+                </button>
+              </div>
             ))}
           </div>
 
           {/* Profile card at bottom of sidebar */}
           <div className="relative mt-auto" ref={profileMenuRef}>
-            {/* Popup menu — shows above the card */}
             {profileMenuOpen && (
               <div className="absolute bottom-14 left-0 right-0 rounded-xl border border-white/10 bg-[#0e1117] overflow-hidden shadow-xl">
                 <button
@@ -131,25 +147,19 @@ const Dashboard = () => {
               </div>
             )}
 
-            {/* Profile card */}
             <button
               onClick={() => setProfileMenuOpen(!profileMenuOpen)}
               className="flex w-full items-center gap-2 px-3 py-2 text-sm text-white/60 hover:text-white hover:bg-white/5 transition rounded-lg"
             >
-              {/* Avatar circle */}
               <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white/10 text-xs font-semibold text-white uppercase">
                 {user?.username?.[0] || "U"}
               </div>
-
-              {/* Username + plan */}
               <div className="flex flex-col items-start min-w-0">
                 <span className="truncate text-sm font-medium text-white/80">
                   {user?.username || "User"}
                 </span>
                 <span className="text-xs text-white/30">Free Plan</span>
               </div>
-
-              {/* Chevron */}
               <ChevronDown
                 size={13}
                 className={`ml-auto shrink-0 text-white/30 transition-transform ${profileMenuOpen ? "rotate-180" : ""}`}
@@ -162,7 +172,6 @@ const Dashboard = () => {
         <section className="relative mx-auto flex h-full min-w-0 flex-1 flex-col">
           {/* Messages */}
           <div className="flex-1 flex flex-col overflow-y-auto pb-40 pt-4 px-2 space-y-4">
-            {/* Empty state */}
             {!currentChatId && (
               <div className="flex flex-1 flex-col items-center justify-center gap-3 text-white/30 h-full">
                 <MessageSquare size={48} strokeWidth={1} />
@@ -170,7 +179,6 @@ const Dashboard = () => {
               </div>
             )}
 
-            {/* Loading state when opening existing chat */}
             {isLoading && currentChatId && (
               <div className="flex flex-1 flex-col items-center justify-center gap-3 text-white/30 h-full">
                 <div className="h-5 w-5 animate-spin rounded-full border-2 border-white/20 border-t-white/60" />
@@ -220,7 +228,6 @@ const Dashboard = () => {
               </div>
             ))}
 
-            {/* Loading dots */}
             {isStreaming && (
               <div className="mr-auto flex gap-1 px-4 py-3">
                 <span className="h-2 w-2 animate-bounce rounded-full bg-white/40 [animation-delay:0ms]"></span>
@@ -234,7 +241,6 @@ const Dashboard = () => {
           {/* Input footer */}
           <div className="absolute bottom-2 left-0 right-0 px-2">
             <div className="rounded-2xl border border-white/15 bg-[#0e1117] p-3 shadow-xl">
-              {/* Text input */}
               <input
                 type="text"
                 value={chatInput}
@@ -244,9 +250,7 @@ const Dashboard = () => {
                 className="w-full bg-transparent px-2 py-2 text-base text-white outline-none placeholder:text-white/25"
               />
 
-              {/* Toolbar */}
               <div className="mt-2 flex items-center justify-between">
-                {/* Left — + only */}
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
@@ -256,9 +260,7 @@ const Dashboard = () => {
                   </button>
                 </div>
 
-                {/* Right — model + mic/send */}
                 <div className="flex items-center gap-2">
-                  {/* Model dropdown */}
                   <div className="relative" ref={modelDropdownRef}>
                     <button
                       type="button"
@@ -283,7 +285,7 @@ const Dashboard = () => {
                               setModelDropdownOpen(false);
                             }}
                             className={`w-full px-3 py-2 text-left text-sm transition hover:bg-white/10
-                                                            ${selectedModel === model.value ? "text-[#31b8c6]" : "text-white/60 hover:text-white"}`}
+                              ${selectedModel === model.value ? "text-[#31b8c6]" : "text-white/60 hover:text-white"}`}
                           >
                             {model.label}
                           </button>
@@ -292,7 +294,6 @@ const Dashboard = () => {
                     )}
                   </div>
 
-                  {/* Mic — only when NOT typing */}
                   {!chatInput.trim() && (
                     <button
                       type="button"
@@ -302,7 +303,6 @@ const Dashboard = () => {
                     </button>
                   )}
 
-                  {/* Send — only when typing */}
                   {chatInput.trim() && (
                     <button
                       type="button"

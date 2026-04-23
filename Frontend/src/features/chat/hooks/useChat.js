@@ -1,6 +1,6 @@
 import { initializeSocketConnection, sendMessageViaSocket } from "../service/chat.socket";
-import { getChats, getMessages } from "../service/chat.api";
-import { setChats, setCurrentChatId, setError, setLoading, createNewChat, addNewMessage, addMessages, setPendingMessage } from "../chat.slice.js";
+import { getChats, getMessages, deleteChat } from "../service/chat.api";
+import { setChats, setCurrentChatId, setError, setLoading, createNewChat, addNewMessage, addMessages, setPendingMessage, removeChat } from "../chat.slice.js";
 import { useDispatch, useSelector } from "react-redux";
 
 export const useChat = () => {
@@ -18,18 +18,15 @@ export const useChat = () => {
         if (!user?._id) return;
 
         if (chatId) {
-            // Existing chat — add user message to Redux immediately
             dispatch(addNewMessage({
                 chatId,
                 content: message,
                 role: "user",
             }));
         } else {
-            // New chat — store message as pending until newChat event fires
             dispatch(setPendingMessage(message));
         }
 
-        // Send to backend via socket
         sendMessageViaSocket({
             message,
             chatId: chatId || null,
@@ -61,9 +58,9 @@ export const useChat = () => {
 
     async function handleOpenChat(chatId, chats) {
         try {
-            dispatch(setCurrentChatId(chatId)); // set chat immediately so UI switches
+            dispatch(setCurrentChatId(chatId));
             if (chats[chatId]?.messages.length === 0) {
-                dispatch(setLoading(true)); // show loading while fetching messages
+                dispatch(setLoading(true));
                 const data = await getMessages(chatId);
                 const { messages } = data;
                 dispatch(addMessages({
@@ -85,11 +82,21 @@ export const useChat = () => {
         dispatch(setCurrentChatId(null));
     }
 
+    async function handleDeleteChat(chatId) {
+        try {
+            await deleteChat(chatId);
+            dispatch(removeChat(chatId));
+        } catch (err) {
+            dispatch(setError(err.response?.data?.message || "Failed to delete chat"));
+        }
+    }
+
     return {
         handleInitializeSocket,
         handleSendMessage,
         handleGetChats,
         handleOpenChat,
         handleNewChat,
+        handleDeleteChat,
     }
 }
