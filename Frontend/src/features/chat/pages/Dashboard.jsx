@@ -18,7 +18,7 @@ const MODELS = [
   { value: "mistral", label: "Mistral" },
   { value: "gemini", label: "Gemini" },
   { value: "groq", label: "Groq" },
-  { value: "cohere", label: "Cohere" },
+  { value: "deepseek", label: "DeepSeek" },
 ];
 
 const Dashboard = () => {

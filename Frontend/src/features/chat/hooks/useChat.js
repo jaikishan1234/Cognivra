@@ -2,12 +2,12 @@ import { initializeSocketConnection, sendMessageViaSocket } from "../service/cha
 import { getChats, getMessages, deleteChat } from "../service/chat.api";
 import { setChats, setCurrentChatId, setError, setLoading, createNewChat, addNewMessage, addMessages, setPendingMessage, removeChat } from "../chat.slice.js";
 import { useDispatch, useSelector } from "react-redux";
+import { toast } from "sonner";
 
 export const useChat = () => {
     const dispatch = useDispatch();
     const user = useSelector((state) => state.auth.user);
 
-    // Initialize socket and join user room
     function handleInitializeSocket() {
         if (user?._id) {
             initializeSocketConnection(user._id);
@@ -50,7 +50,9 @@ export const useChat = () => {
                 return acc;
             }, {})));
         } catch (err) {
-            dispatch(setError(err.response?.data?.message || "Failed to get chats"));
+            const message = err.response?.data?.message || "Failed to load chats";
+            dispatch(setError(message));
+            toast.error(message);
         } finally {
             dispatch(setLoading(false));
         }
@@ -72,7 +74,9 @@ export const useChat = () => {
                 }));
             }
         } catch (err) {
-            dispatch(setError(err.response?.data?.message || "Failed to open chat"));
+            const message = err.response?.data?.message || "Failed to open chat";
+            dispatch(setError(message));
+            toast.error(message);
         } finally {
             dispatch(setLoading(false));
         }
@@ -86,8 +90,11 @@ export const useChat = () => {
         try {
             await deleteChat(chatId);
             dispatch(removeChat(chatId));
+            toast.success("Chat deleted");
         } catch (err) {
-            dispatch(setError(err.response?.data?.message || "Failed to delete chat"));
+            const message = err.response?.data?.message || "Failed to delete chat";
+            dispatch(setError(message));
+            toast.error(message);
         }
     }
 
