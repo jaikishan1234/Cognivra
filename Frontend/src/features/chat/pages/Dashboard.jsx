@@ -44,8 +44,11 @@ const Dashboard = () => {
 
   // File attachment state
   const [fileAttachment, setFileAttachment] = useState(null);
-  // { base64, mimeType, name, previewUrl }
   const fileInputRef = useRef(null);
+
+  // Mic / speech state
+  const [isRecording, setIsRecording] = useState(false);
+  const recognitionRef = useRef(null);
 
   useEffect(() => {
     chat.handleInitializeSocket();
@@ -80,14 +83,12 @@ const Dashboard = () => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Validate type
     if (!ACCEPTED_TYPES.includes(file.type)) {
       alert("Only JPG, PNG, WEBP images and PDFs are supported.");
       e.target.value = "";
       return;
     }
 
-    // Validate size
     if (file.size > MAX_FILE_SIZE_MB * 1024 * 1024) {
       alert(`File must be under ${MAX_FILE_SIZE_MB}MB.`);
       e.target.value = "";
@@ -96,7 +97,7 @@ const Dashboard = () => {
 
     const reader = new FileReader();
     reader.onload = () => {
-      const dataUrl = reader.result; // e.g. "data:image/png;base64,..."
+      const dataUrl = reader.result;
       const base64 = dataUrl.split(",")[1];
       setFileAttachment({
         base64,
@@ -106,13 +107,67 @@ const Dashboard = () => {
       });
     };
     reader.readAsDataURL(file);
-
-    // Reset input so same file can be re-selected if needed
     e.target.value = "";
   };
 
   const handleRemoveAttachment = () => {
     setFileAttachment(null);
+  };
+
+  // Mic toggle
+  const handleMicClick = () => {
+    const SpeechRecognition =
+      window.SpeechRecognition || window.webkitSpeechRecognition;
+
+    if (!SpeechRecognition) {
+      alert("Speech recognition is not supported in your browser. Try Chrome.");
+      return;
+    }
+
+    // If already recording — stop
+    if (isRecording) {
+      recognitionRef.current?.stop();
+      setIsRecording(false);
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.lang = "en-IN";
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+    recognition.continuous = false; // single shot — most reliable in Chrome
+
+    recognition.onstart = () => {
+      setIsRecording(true);
+    };
+
+    recognition.onresult = (e) => {
+      const transcript = e.results[0][0].transcript;
+      console.log("Speech transcript:", transcript);
+      setChatInput((prev) => (prev ? prev + " " + transcript : transcript));
+    };
+
+    recognition.onnomatch = () => {
+      console.log("No match found for speech");
+      setIsRecording(false);
+    };
+
+    recognition.onerror = (e) => {
+      if (e.error === "no-speech") {
+        console.log("No speech detected — try speaking louder or closer to mic");
+        setIsRecording(false);
+        return;
+      }
+      console.error("Speech recognition error:", e.error);
+      setIsRecording(false);
+    };
+
+    recognition.onend = () => {
+      setIsRecording(false);
+    };
+
+    recognitionRef.current = recognition;
+    recognition.start();
   };
 
   const handleSubmitMessage = (e) => {
@@ -186,7 +241,7 @@ const Dashboard = () => {
             ))}
           </div>
 
-          {/* Profile card at bottom of sidebar */}
+          {/* Profile card */}
           <div className="relative mt-auto" ref={profileMenuRef}>
             {profileMenuOpen && (
               <div className="absolute bottom-14 left-0 right-0 rounded-xl border border-white/10 bg-[#0e1117] overflow-hidden shadow-xl">
@@ -251,7 +306,7 @@ const Dashboard = () => {
                     : "mr-auto text-white/90"
                 }`}
               >
-                {/* Show file attachment indicator if present */}
+                {/* File attachment indicator */}
                 {message.file && (
                   <div className="mb-2">
                     {message.file.mimeType?.startsWith("image/") ? (
@@ -320,7 +375,6 @@ const Dashboard = () => {
               {fileAttachment && (
                 <div className="mb-2 flex items-center gap-2">
                   {fileAttachment.previewUrl ? (
-                    // Image preview
                     <div className="relative inline-block">
                       <img
                         src={fileAttachment.previewUrl}
@@ -336,7 +390,6 @@ const Dashboard = () => {
                       </button>
                     </div>
                   ) : (
-                    // PDF pill
                     <div className="relative flex items-center gap-2 rounded-lg border border-white/20 bg-white/5 px-3 py-2 text-xs text-white/60">
                       <FileText size={13} />
                       <span className="truncate max-w-[200px]">{fileAttachment.name}</span>
@@ -357,7 +410,7 @@ const Dashboard = () => {
                 value={chatInput}
                 onChange={(e) => setChatInput(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleSubmitMessage(e)}
-                placeholder="Ask anything..."
+                placeholder={isRecording ? "Listening..." : "Ask anything..."}
                 className="w-full bg-transparent px-2 py-2 text-base text-white outline-none placeholder:text-white/25"
               />
 
@@ -371,8 +424,7 @@ const Dashboard = () => {
                     onChange={handleFileChange}
                     className="hidden"
                   />
-
-                  {/* + button triggers file input */}
+                  {/* + button */}
                   <button
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
@@ -416,15 +468,26 @@ const Dashboard = () => {
                     )}
                   </div>
 
+                  {/* Mic — only when no text and no attachment */}
                   {!chatInput.trim() && !fileAttachment && (
                     <button
                       type="button"
-                      className="flex h-8 w-8 items-center justify-center rounded-full border border-white/20 text-white/50 hover:text-white hover:border-white/50 transition"
+                      onClick={handleMicClick}
+                      className={`relative flex h-8 w-8 items-center justify-center rounded-full border transition
+                        ${isRecording
+                          ? "border-red-400 text-red-400"
+                          : "border-white/20 text-white/50 hover:text-white hover:border-white/50"
+                        }`}
                     >
+                      {/* Pulse ring while recording */}
+                      {isRecording && (
+                        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-400 opacity-20" />
+                      )}
                       <Mic size={15} />
                     </button>
                   )}
 
+                  {/* Send — when there's text or attachment */}
                   {(chatInput.trim() || fileAttachment) && (
                     <button
                       type="button"
