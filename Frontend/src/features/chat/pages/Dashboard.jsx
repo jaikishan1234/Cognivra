@@ -12,6 +12,8 @@ import {
   MessageSquare,
   LogOut,
   Trash2,
+  X,
+  FileText,
 } from "lucide-react";
 
 const MODELS = [
@@ -20,6 +22,9 @@ const MODELS = [
   { value: "groq", label: "Groq" },
   { value: "deepseek", label: "DeepSeek" },
 ];
+
+const ACCEPTED_TYPES = ["image/jpeg", "image/png", "image/webp", "application/pdf"];
+const MAX_FILE_SIZE_MB = 10;
 
 const Dashboard = () => {
   const chat = useChat();
@@ -36,6 +41,11 @@ const Dashboard = () => {
   const profileMenuRef = useRef(null);
   const user = useSelector((state) => state.auth.user);
   const isLoading = useSelector((state) => state.chat.isLoading);
+
+  // File attachment state
+  const [fileAttachment, setFileAttachment] = useState(null);
+  // { base64, mimeType, name, previewUrl }
+  const fileInputRef = useRef(null);
 
   useEffect(() => {
     chat.handleInitializeSocket();
@@ -65,16 +75,64 @@ const Dashboard = () => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  // Handle file selection
+  const handleFileChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate type
+    if (!ACCEPTED_TYPES.includes(file.type)) {
+      alert("Only JPG, PNG, WEBP images and PDFs are supported.");
+      e.target.value = "";
+      return;
+    }
+
+    // Validate size
+    if (file.size > MAX_FILE_SIZE_MB * 1024 * 1024) {
+      alert(`File must be under ${MAX_FILE_SIZE_MB}MB.`);
+      e.target.value = "";
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = reader.result; // e.g. "data:image/png;base64,..."
+      const base64 = dataUrl.split(",")[1];
+      setFileAttachment({
+        base64,
+        mimeType: file.type,
+        name: file.name,
+        previewUrl: file.type.startsWith("image/") ? dataUrl : null,
+      });
+    };
+    reader.readAsDataURL(file);
+
+    // Reset input so same file can be re-selected if needed
+    e.target.value = "";
+  };
+
+  const handleRemoveAttachment = () => {
+    setFileAttachment(null);
+  };
+
   const handleSubmitMessage = (e) => {
     e?.preventDefault();
     const trimmedMessage = chatInput.trim();
-    if (!trimmedMessage || isStreaming) return;
+    if ((!trimmedMessage && !fileAttachment) || isStreaming) return;
     chat.handleSendMessage({
-      message: trimmedMessage,
+      message: trimmedMessage || (fileAttachment ? "Attached file" : ""),
       chatId: currentChatId,
       model: selectedModel,
+      file: fileAttachment
+        ? {
+            base64: fileAttachment.base64,
+            mimeType: fileAttachment.mimeType,
+            name: fileAttachment.name,
+          }
+        : null,
     });
     setChatInput("");
+    setFileAttachment(null);
   };
 
   return (
@@ -105,7 +163,6 @@ const Dashboard = () => {
                       : "text-white/50 hover:bg-white/5 hover:text-white"
                   }`}
               >
-                {/* Chat button — takes all available space */}
                 <button
                   onClick={() => chat.handleOpenChat(c.id, chats)}
                   type="button"
@@ -115,7 +172,6 @@ const Dashboard = () => {
                   <span className="truncate flex-1">{c.title}</span>
                 </button>
 
-                {/* Trash icon — only visible on hover */}
                 <button
                   type="button"
                   onClick={(e) => {
@@ -195,6 +251,24 @@ const Dashboard = () => {
                     : "mr-auto text-white/90"
                 }`}
               >
+                {/* Show file attachment indicator if present */}
+                {message.file && (
+                  <div className="mb-2">
+                    {message.file.mimeType?.startsWith("image/") ? (
+                      <img
+                        src={`data:${message.file.mimeType};base64,${message.file.base64}`}
+                        alt={message.file.name}
+                        className="max-h-48 max-w-xs rounded-xl object-cover"
+                      />
+                    ) : (
+                      <div className="flex items-center gap-2 rounded-lg border border-white/20 bg-white/5 px-3 py-2 text-xs text-white/60">
+                        <FileText size={13} />
+                        <span className="truncate max-w-[180px]">{message.file.name}</span>
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 {message.role === "user" ? (
                   <p>{message.content}</p>
                 ) : (
@@ -241,6 +315,43 @@ const Dashboard = () => {
           {/* Input footer */}
           <div className="absolute bottom-2 left-0 right-0 px-2">
             <div className="rounded-2xl border border-white/15 bg-[#0e1117] p-3 shadow-xl">
+
+              {/* File attachment preview */}
+              {fileAttachment && (
+                <div className="mb-2 flex items-center gap-2">
+                  {fileAttachment.previewUrl ? (
+                    // Image preview
+                    <div className="relative inline-block">
+                      <img
+                        src={fileAttachment.previewUrl}
+                        alt={fileAttachment.name}
+                        className="h-16 w-16 rounded-xl object-cover border border-white/10"
+                      />
+                      <button
+                        type="button"
+                        onClick={handleRemoveAttachment}
+                        className="absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-white/20 text-white hover:bg-white/40 transition"
+                      >
+                        <X size={9} />
+                      </button>
+                    </div>
+                  ) : (
+                    // PDF pill
+                    <div className="relative flex items-center gap-2 rounded-lg border border-white/20 bg-white/5 px-3 py-2 text-xs text-white/60">
+                      <FileText size={13} />
+                      <span className="truncate max-w-[200px]">{fileAttachment.name}</span>
+                      <button
+                        type="button"
+                        onClick={handleRemoveAttachment}
+                        className="ml-1 text-white/30 hover:text-white/70 transition"
+                      >
+                        <X size={11} />
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+
               <input
                 type="text"
                 value={chatInput}
@@ -252,8 +363,19 @@ const Dashboard = () => {
 
               <div className="mt-2 flex items-center justify-between">
                 <div className="flex items-center gap-2">
+                  {/* Hidden file input */}
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp,application/pdf"
+                    onChange={handleFileChange}
+                    className="hidden"
+                  />
+
+                  {/* + button triggers file input */}
                   <button
                     type="button"
+                    onClick={() => fileInputRef.current?.click()}
                     className="flex h-8 w-8 items-center justify-center rounded-full border border-white/20 text-white/50 hover:text-white hover:border-white/50 transition"
                   >
                     <Plus size={15} />
@@ -294,7 +416,7 @@ const Dashboard = () => {
                     )}
                   </div>
 
-                  {!chatInput.trim() && (
+                  {!chatInput.trim() && !fileAttachment && (
                     <button
                       type="button"
                       className="flex h-8 w-8 items-center justify-center rounded-full border border-white/20 text-white/50 hover:text-white hover:border-white/50 transition"
@@ -303,7 +425,7 @@ const Dashboard = () => {
                     </button>
                   )}
 
-                  {chatInput.trim() && (
+                  {(chatInput.trim() || fileAttachment) && (
                     <button
                       type="button"
                       onClick={handleSubmitMessage}

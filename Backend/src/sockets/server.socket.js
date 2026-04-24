@@ -25,7 +25,7 @@ export function initSocket(httpServer) {
         });
 
         socket.on("sendMessage", async (data) => {
-            const { message, chatId, model = "mistral", userId } = data;
+            const { message, chatId, model = "mistral", userId, file = null } = data;
 
             try {
                 let chat = null;
@@ -61,6 +61,7 @@ export function initSocket(httpServer) {
                 await generateResponseStream(
                     messages,
                     model,
+                    file,
                     (token) => {
                         io.to(userId).emit("streamToken", { token, chatId: resolvedChatId });
                     },

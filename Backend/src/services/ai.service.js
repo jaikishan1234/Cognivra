@@ -51,7 +51,7 @@ const newsTool = tool(
       .map((r, i) => `[${i + 1}] ${r.title}\n    ${r.url}\n    ${r.content}`)
       .join("\n\n");
 
-    return `LATEST NEWS ON: "${topic}"\n\n${articles}`;
+    return `LATEST NEWS ON: "${topic}"\n\nARTICLES:\n${articles}`;
   },
   {
     name: "newsTool",
@@ -77,8 +77,7 @@ const groqModel = new ChatGroq({
 });
 
 const deepseekModel = new ChatGroq({
-  // The currently active Qwen reasoning model on Groq
-  model: "qwen/qwen3-32b", 
+  model: "qwen/qwen3-32b",
   apiKey: process.env.GROQ_API_KEY,
 });
 
@@ -120,9 +119,53 @@ function extractToken(chunk) {
   return "";
 }
 
+/**
+ * Build the last HumanMessage with file attachment if present.
+ * - Gemini: supports image/* and application/pdf as inline base64 data
+ * - Mistral / Groq / DeepSeek: vision not supported via LangChain,
+ *   so we append a plain-text note describing the attachment instead.
+ */
+function buildLastHumanMessage(text, file, modelName) {
+  if (!file) {
+    return new HumanMessage(text);
+  }
+
+  const isGemini = modelName === "gemini";
+  const isImage = file.mimeType?.startsWith("image/");
+  const isPdf = file.mimeType === "application/pdf";
+
+  if (isGemini && (isImage || isPdf)) {
+    // Gemini multimodal — inline base64
+    const contentParts = [];
+
+    if (text) {
+      contentParts.push({ type: "text", text });
+    }
+
+    contentParts.push({
+      type: "image_url",
+      image_url: {
+        url: `data:${file.mimeType};base64,${file.base64}`,
+      },
+    });
+
+    return new HumanMessage({ content: contentParts });
+  }
+
+  // Fallback for non-Gemini models — append a text note
+  const fileNote = isImage
+    ? `\n\n[User attached an image: ${file.name}. You cannot view it — let the user know that image uploads are only supported with the Gemini model.]`
+    : isPdf
+    ? `\n\n[User attached a PDF: ${file.name}. You cannot read it — let the user know that PDF uploads are only supported with the Gemini model.]`
+    : `\n\n[User attached a file: ${file.name}. You cannot read it — let the user know that file uploads are only supported with the Gemini model.]`;
+
+  return new HumanMessage(text + fileNote);
+}
+
 export async function generateResponseStream(
   messages,
   modelName = "mistral",
+  file = null,
   onToken,
   onDone,
 ) {
@@ -133,13 +176,19 @@ export async function generateResponseStream(
     tools: [researchTool, newsTool],
   });
 
+  // Build all messages except the last user message normally
+  const allButLast = messages.slice(0, -1);
+  const lastMessage = messages[messages.length - 1];
+
   const formattedMessages = [
     new SystemMessage(SYSTEM_PROMPT),
-    ...messages.map((msg) =>
+    ...allButLast.map((msg) =>
       msg.role === "user"
         ? new HumanMessage(msg.content)
         : new AIMessage(msg.content),
     ),
+    // Last message — inject file if present
+    buildLastHumanMessage(lastMessage.content, file, modelName),
   ];
 
   let fullText = "";

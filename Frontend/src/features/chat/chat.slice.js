@@ -21,8 +21,8 @@ const chatSlice = createSlice({
             };
         },
         addNewMessage: (state, action) => {
-            const { chatId, content, role } = action.payload;
-            state.chats[chatId].messages.push({ content, role });
+            const { chatId, content, role, file = null } = action.payload;
+            state.chats[chatId].messages.push({ content, role, file });
         },
         addMessages: (state, action) => {
             const { chatId, messages } = action.payload;
@@ -41,6 +41,7 @@ const chatSlice = createSlice({
             state.error = action.payload;
         },
         setPendingMessage: (state, action) => {
+            // Accepts either a plain string (legacy) or { text, file } object
             state.pendingMessage = action.payload;
         },
         clearPendingMessage: (state) => {

@@ -14,7 +14,7 @@ export const useChat = () => {
         }
     }
 
-    function handleSendMessage({ message, chatId, model = "mistral" }) {
+    function handleSendMessage({ message, chatId, model = "mistral", file = null }) {
         if (!user?._id) return;
 
         if (chatId) {
@@ -22,9 +22,10 @@ export const useChat = () => {
                 chatId,
                 content: message,
                 role: "user",
+                file,
             }));
         } else {
-            dispatch(setPendingMessage(message));
+            dispatch(setPendingMessage({ text: message, file }));
         }
 
         sendMessageViaSocket({
@@ -32,6 +33,7 @@ export const useChat = () => {
             chatId: chatId || null,
             model,
             userId: user._id,
+            file,
         });
     }
 

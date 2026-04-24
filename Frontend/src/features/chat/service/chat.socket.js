@@ -34,13 +34,14 @@ export const initializeSocketConnection = (userId) => {
         store.dispatch(createNewChat({ chatId: id, title }));
         store.dispatch(setCurrentChatId(id));
 
-        // Get pending message from Redux and add it to new chat
+        // pendingMessage is now { text, file } — read both
         const pendingMessage = store.getState().chat.pendingMessage;
         if (pendingMessage) {
             store.dispatch(addNewMessage({
                 chatId: id,
-                content: pendingMessage,
+                content: pendingMessage.text || pendingMessage, // fallback for plain string
                 role: "user",
+                file: pendingMessage.file || null,
             }));
             store.dispatch(clearPendingMessage());
         }
@@ -74,7 +75,7 @@ export const initializeSocketConnection = (userId) => {
     return socket;
 };
 
-// Send message via socket
+// Send message via socket — file is included in data if present
 export const sendMessageViaSocket = (data) => {
     if (socket) {
         socket.emit("sendMessage", data);
