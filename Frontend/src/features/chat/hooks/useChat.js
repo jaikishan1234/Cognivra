@@ -73,6 +73,12 @@ export const useChat = () => {
                     messages: messages.map(msg => ({
                         content: msg.content,
                         role: msg.role,
+                        file: msg.fileUrl ? {
+                            base64: null,
+                            mimeType: msg.fileMimeType,
+                            name: msg.fileName,
+                            previewUrl: msg.fileUrl,
+                        } : null,
                     }))
                 }));
             }

@@ -20,6 +20,7 @@
     "@langchain/mistralai": "^1.0.7",
     "@tavily/core": "^0.7.2",
     "bcryptjs": "^3.0.3",
+    "cloudinary": "^2.9.0",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.6",
     "dotenv": "^17.3.1",

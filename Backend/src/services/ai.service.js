@@ -231,5 +231,8 @@ export async function generateChatTitle(message) {
     ),
   ]);
 
-  return response.text.replace(/\*+/g, "").replace(/"/g, "").trim();
+  return response.text
+  .replace(/[*_`#>~]/g, "")
+  .replace(/"/g, "")
+  .trim();
 }

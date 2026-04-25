@@ -294,7 +294,7 @@ const Dashboard = () => {
         </aside>
 
         {/* Main chat area */}
-        <section className="relative mx-auto flex h-full min-w-0 flex-1 flex-col">
+        <section className="relative mx-auto flex h-full min-w-0 flex-1 flex-col overflow-hidden">
           {/* Messages */}
           <div className="flex-1 flex flex-col overflow-y-auto pb-40 pt-4 px-2 space-y-4">
             {!currentChatId && (
@@ -324,11 +324,11 @@ const Dashboard = () => {
                 {message.file && (
                   <div className="mb-2">
                     {message.file.mimeType?.startsWith("image/") ? (
-                      <img
-                        src={`data:${message.file.mimeType};base64,${message.file.base64}`}
-                        alt={message.file.name}
-                        className="max-h-48 max-w-xs rounded-xl object-cover"
-                      />
+                    <img
+                      src={message.file.previewUrl || `data:${message.file.mimeType};base64,${message.file.base64}`}
+                      alt={message.file.name}
+                      className="max-h-48 max-w-xs rounded-xl object-cover"
+                    />
                     ) : (
                       <div className="flex items-center gap-2 rounded-lg border border-white/20 bg-white/5 px-3 py-2 text-xs text-white/60">
                         <FileText size={13} />
@@ -384,7 +384,7 @@ const Dashboard = () => {
           </div>
 
           {/* Input footer */}
-          <div className="absolute bottom-2 left-0 right-0 px-2">
+          <div className="absolute bottom-2 left-2 right-2">
             <div className="rounded-2xl border border-white/15 bg-[#0e1117] p-3 shadow-xl">
               {/* File attachment preview */}
               {fileAttachment && (

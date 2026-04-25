@@ -3,6 +3,7 @@ import { generateResponseStream } from "../services/ai.service.js";
 import { generateChatTitle } from "../services/ai.service.js";
 import chatModel from "../models/chat.model.js";
 import messageModel from "../models/message.model.js";
+import { uploadToCloudinary } from "../services/cloudinary.service.js";
 
 let io;
 
@@ -48,10 +49,24 @@ export function initSocket(httpServer) {
 
                 const resolvedChatId = chatId || chat._id;
 
+                let fileUrl = null;
+                let fileName = null;
+                let fileMimeType = null;
+
+                if (file) {
+                    const uploaded = await uploadToCloudinary(file.base64, file.mimeType, file.name);
+                    fileUrl = uploaded.url;
+                    fileName = file.name;
+                    fileMimeType = file.mimeType;
+                }
+
                 await messageModel.create({
                     chat: resolvedChatId,
                     content: message,
-                    role: "user"
+                    role: "user",
+                    fileUrl,
+                    fileName,
+                    fileMimeType,
                 });
 
                 const messages = await messageModel.find({ chat: resolvedChatId });
