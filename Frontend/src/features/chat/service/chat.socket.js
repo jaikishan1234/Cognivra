@@ -31,7 +31,7 @@ export const initializeSocketConnection = (userId) => {
     socket.on("newChat", ({ chatId, title, model }) => {
         const id = chatId.toString();
 
-        store.dispatch(createNewChat({ chatId: id, title }));
+        store.dispatch(createNewChat({ chatId: id, title, model }));
         store.dispatch(setCurrentChatId(id));
 
         // pendingMessage is now { text, file } — read both

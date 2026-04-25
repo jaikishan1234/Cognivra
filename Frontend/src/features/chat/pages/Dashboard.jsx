@@ -23,7 +23,12 @@ const MODELS = [
   { value: "deepseek", label: "DeepSeek" },
 ];
 
-const ACCEPTED_TYPES = ["image/jpeg", "image/png", "image/webp", "application/pdf"];
+const ACCEPTED_TYPES = [
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "application/pdf",
+];
 const MAX_FILE_SIZE_MB = 10;
 
 const Dashboard = () => {
@@ -154,7 +159,9 @@ const Dashboard = () => {
 
     recognition.onerror = (e) => {
       if (e.error === "no-speech") {
-        console.log("No speech detected — try speaking louder or closer to mic");
+        console.log(
+          "No speech detected — try speaking louder or closer to mic",
+        );
         setIsRecording(false);
         return;
       }
@@ -224,7 +231,14 @@ const Dashboard = () => {
                   className="flex flex-1 items-center gap-2 min-w-0 text-left cursor-pointer"
                 >
                   <MessageSquare size={14} className="shrink-0 opacity-60" />
-                  <span className="truncate flex-1">{c.title}</span>
+                  <div className="flex flex-col min-w-0">
+                    <span className="truncate">{c.title}</span>
+                    {c.model && (
+                      <span className="text-xs text-white/30 capitalize">
+                        {c.model}
+                      </span>
+                    )}
+                  </div>
                 </button>
 
                 <button
@@ -318,7 +332,9 @@ const Dashboard = () => {
                     ) : (
                       <div className="flex items-center gap-2 rounded-lg border border-white/20 bg-white/5 px-3 py-2 text-xs text-white/60">
                         <FileText size={13} />
-                        <span className="truncate max-w-[180px]">{message.file.name}</span>
+                        <span className="truncate max-w-[180px]">
+                          {message.file.name}
+                        </span>
                       </div>
                     )}
                   </div>
@@ -370,7 +386,6 @@ const Dashboard = () => {
           {/* Input footer */}
           <div className="absolute bottom-2 left-0 right-0 px-2">
             <div className="rounded-2xl border border-white/15 bg-[#0e1117] p-3 shadow-xl">
-
               {/* File attachment preview */}
               {fileAttachment && (
                 <div className="mb-2 flex items-center gap-2">
@@ -392,7 +407,9 @@ const Dashboard = () => {
                   ) : (
                     <div className="relative flex items-center gap-2 rounded-lg border border-white/20 bg-white/5 px-3 py-2 text-xs text-white/60">
                       <FileText size={13} />
-                      <span className="truncate max-w-[200px]">{fileAttachment.name}</span>
+                      <span className="truncate max-w-[200px]">
+                        {fileAttachment.name}
+                      </span>
                       <button
                         type="button"
                         onClick={handleRemoveAttachment}
@@ -408,11 +425,25 @@ const Dashboard = () => {
               <input
                 type="text"
                 value={chatInput}
-                onChange={(e) => setChatInput(e.target.value)}
+                onChange={(e) => {
+                  if (e.target.value.length <= 2000)
+                    setChatInput(e.target.value);
+                }}
                 onKeyDown={(e) => e.key === "Enter" && handleSubmitMessage(e)}
                 placeholder={isRecording ? "Listening..." : "Ask anything..."}
                 className="w-full bg-transparent px-2 py-2 text-base text-white outline-none placeholder:text-white/25"
               />
+
+              {chatInput.length > 1800 && (
+                <p className="px-2 pt-1 text-right text-xs text-white/30">
+                  <span
+                    className={chatInput.length >= 2000 ? "text-red-400" : ""}
+                  >
+                    {chatInput.length}
+                  </span>
+                  /2000
+                </p>
+              )}
 
               <div className="mt-2 flex items-center justify-between">
                 <div className="flex items-center gap-2">
@@ -474,9 +505,10 @@ const Dashboard = () => {
                       type="button"
                       onClick={handleMicClick}
                       className={`relative flex h-8 w-8 items-center justify-center rounded-full border transition
-                        ${isRecording
-                          ? "border-red-400 text-red-400"
-                          : "border-white/20 text-white/50 hover:text-white hover:border-white/50"
+                        ${
+                          isRecording
+                            ? "border-red-400 text-red-400"
+                            : "border-white/20 text-white/50 hover:text-white hover:border-white/50"
                         }`}
                     >
                       {/* Pulse ring while recording */}

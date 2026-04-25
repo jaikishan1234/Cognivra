@@ -12,10 +12,11 @@ const chatSlice = createSlice({
     },
     reducers: {
         createNewChat: (state, action) => {
-            const { chatId, title } = action.payload;
+            const { chatId, title, model } = action.payload;
             state.chats[chatId] = {
                 id: chatId,
                 title,
+                model: model || null,
                 messages: [],
                 lastUpdated: new Date().toISOString(),
             };

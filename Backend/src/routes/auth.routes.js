@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { register, verifyEmail, login, getMe, logout } from "../controllers/auth.controller.js";
+import { register, verifyEmail, login, getMe, logout, refresh } from "../controllers/auth.controller.js";
 import { registerValidator, loginValidator } from "../validators/auth.validator.js";
 import { authUser } from "../middleware/auth.middleware.js";
 
@@ -42,5 +42,13 @@ authRouter.get('/verify-email', verifyEmail);
  * @access Private
  */
 authRouter.post('/logout', authUser, logout);
+
+// ADD after the logout route
+/**
+ * @route POST /api/auth/refresh
+ * @desc Refresh access token
+ * @access Public
+ */
+authRouter.post('/refresh', refresh);
 
 export default authRouter;

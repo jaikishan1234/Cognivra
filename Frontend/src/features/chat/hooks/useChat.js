@@ -46,6 +46,7 @@ export const useChat = () => {
                 acc[chat._id] = {
                     id: chat._id,
                     title: chat.title,
+                    model: chat.model || null,
                     messages: [],
                     lastUpdated: chat.updatedAt,
                 }

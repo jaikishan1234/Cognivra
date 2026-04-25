@@ -95,12 +95,18 @@ export async function login(req, res) {
         })
     }
 
+
     const token = jwt.sign({
         id: user._id,
         username: user.username,
+    }, process.env.JWT_SECRET, { expiresIn: '15m' })
+
+    const refreshToken = jwt.sign({
+        id: user._id,
     }, process.env.JWT_SECRET, { expiresIn: '7d' })
 
-    res.cookie("token", token)
+    res.cookie("token", token, { httpOnly: true, maxAge: 15 * 60 * 1000 })
+    res.cookie("refreshToken", refreshToken, { httpOnly: true, maxAge: 7 * 24 * 60 * 60 * 1000 })
 
     res.status(200).json({
         message: "Login successful",
@@ -194,8 +200,37 @@ export async function verifyEmail(req, res) {
  */
 export async function logout(req, res) {
     res.clearCookie("token");
+    res.clearCookie("refreshToken");
     res.status(200).json({
         message: "Logged out successfully",
         success: true,
     });
+}
+
+/**
+ * @desc Refresh access token using refresh token cookie
+ * @route POST /api/auth/refresh
+ * @access Public
+ */
+export async function refresh(req, res) {
+    const refreshToken = req.cookies.refreshToken;
+
+    if (!refreshToken) {
+        return res.status(401).json({ message: "No refresh token", success: false });
+    }
+
+    try {
+        const decoded = jwt.verify(refreshToken, process.env.JWT_SECRET);
+
+        const newToken = jwt.sign({
+            id: decoded.id,
+            username: decoded.username,
+        }, process.env.JWT_SECRET, { expiresIn: '15m' })
+
+        res.cookie("token", newToken, { httpOnly: true, maxAge: 15 * 60 * 1000 })
+
+        res.status(200).json({ message: "Token refreshed", success: true })
+    } catch (err) {
+        return res.status(401).json({ message: "Invalid refresh token", success: false });
+    }
 }
