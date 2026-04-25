@@ -14,6 +14,10 @@ import {
   Trash2,
   X,
   FileText,
+  Search,
+  MoreHorizontal,
+  PanelLeftClose,
+  PanelLeftOpen,
 } from "lucide-react";
 
 const MODELS = [
@@ -32,27 +36,38 @@ const ACCEPTED_TYPES = [
 const MAX_FILE_SIZE_MB = 10;
 
 const Dashboard = () => {
+  // Redux state
   const chat = useChat();
-  const [chatInput, setChatInput] = useState("");
-  const [selectedModel, setSelectedModel] = useState("mistral");
-  const [modelDropdownOpen, setModelDropdownOpen] = useState(false);
   const chats = useSelector((state) => state.chat.chats);
   const currentChatId = useSelector((state) => state.chat.currentChatId);
   const isStreaming = useSelector((state) => state.chat.isStreaming);
+  const isLoading = useSelector((state) => state.chat.isLoading);
+  const user = useSelector((state) => state.auth.user);
+  const auth = useAuth();
+
+  // Input state
+  const [chatInput, setChatInput] = useState("");
+  const [selectedModel, setSelectedModel] = useState("mistral");
+  const [fileAttachment, setFileAttachment] = useState(null);
+
+  // Sidebar state
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [openMenuChatId, setOpenMenuChatId] = useState(null);
+
+  // Dropdown and menu state
+  const [modelDropdownOpen, setModelDropdownOpen] = useState(false);
+  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+
+  // Speech recognition state
+  const [isRecording, setIsRecording] = useState(false);
+
+  // Refs
   const messagesEndRef = useRef(null);
   const modelDropdownRef = useRef(null);
-  const auth = useAuth();
-  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const profileMenuRef = useRef(null);
-  const user = useSelector((state) => state.auth.user);
-  const isLoading = useSelector((state) => state.chat.isLoading);
-
-  // File attachment state
-  const [fileAttachment, setFileAttachment] = useState(null);
+  const chatMenuRef = useRef(null);
   const fileInputRef = useRef(null);
-
-  // Mic / speech state
-  const [isRecording, setIsRecording] = useState(false);
   const recognitionRef = useRef(null);
 
   useEffect(() => {
@@ -77,6 +92,9 @@ const Dashboard = () => {
         !profileMenuRef.current.contains(e.target)
       ) {
         setProfileMenuOpen(false);
+      }
+      if (chatMenuRef.current && !chatMenuRef.current.contains(e.target)) {
+        setOpenMenuChatId(null);
       }
     }
     document.addEventListener("mousedown", handleClickOutside);
@@ -201,58 +219,147 @@ const Dashboard = () => {
     <main className="min-h-screen w-full bg-[#07090f] p-3 text-white md:p-5">
       <section className="mx-auto flex h-[calc(100vh-1.5rem)] w-full gap-4 md:h-[calc(100vh-2.5rem)] md:gap-6">
         {/* Sidebar */}
-        <aside className="hidden h-full w-72 shrink-0 rounded-3xl bg-[#080b12] p-4 md:flex md:flex-col">
-          <h1 className="mb-5 text-2xl font-bold tracking-tight text-white">
-            Cognivra
-          </h1>
+        {/* Sidebar — collapsible, with search and chat menu */}
+        <aside
+          className={`hidden h-full shrink-0 rounded-3xl bg-[#080b12] p-4 md:flex md:flex-col transition-all duration-300 ${sidebarOpen ? "w-72" : "w-16"}`}
+        >
+          {/* Top row — title + collapse button */}
+          <div className="mb-5 flex items-center justify-between">
+            {sidebarOpen && (
+              <h1 className="text-2xl font-bold tracking-tight text-white">
+                Cognivra
+              </h1>
+            )}
+            <button
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl text-white/40 hover:bg-white/5 hover:text-white transition"
+            >
+              {sidebarOpen ? (
+                <PanelLeftClose size={18} />
+              ) : (
+                <PanelLeftOpen size={18} />
+              )}
+            </button>
+          </div>
 
+          {/* New chat button */}
           <button
             onClick={() => chat.handleNewChat()}
-            className="mb-4 flex items-center justify-center gap-2 w-full rounded-xl border border-white/20 py-2 text-sm text-white/60 hover:text-white hover:border-white/40 transition"
+            className={`mb-4 flex items-center justify-center gap-2 w-full rounded-xl border border-white/20 py-2 text-sm text-white/60 hover:text-white hover:border-white/40 transition ${!sidebarOpen ? "px-0" : ""}`}
           >
             <Plus size={15} />
-            New Chat
+            {sidebarOpen && "New Chat"}
           </button>
 
-          <div className="flex-1 space-y-1 overflow-y-auto">
-            {Object.values(chats).map((c, index) => (
-              <div
-                key={index}
-                className={`group flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium transition
-                  ${
-                    currentChatId === c.id
-                      ? "bg-white/10 text-white"
-                      : "text-white/50 hover:bg-white/5 hover:text-white"
-                  }`}
-              >
+          {/* Search bar — only when sidebar is open */}
+          {sidebarOpen ? (
+            <div className="mb-3 flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2">
+              <Search size={13} className="shrink-0 text-white/30" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search chats..."
+                className="w-full bg-transparent text-sm text-white outline-none placeholder:text-white/25"
+              />
+              {searchQuery && (
                 <button
-                  onClick={() => chat.handleOpenChat(c.id, chats)}
-                  type="button"
-                  className="flex flex-1 items-center gap-2 min-w-0 text-left cursor-pointer"
+                  onClick={() => setSearchQuery("")}
+                  className="text-white/30 hover:text-white transition"
                 >
-                  <MessageSquare size={14} className="shrink-0 opacity-60" />
-                  <div className="flex flex-col min-w-0">
-                    <span className="truncate">{c.title}</span>
-                    {c.model && (
-                      <span className="text-xs text-white/30 capitalize">
-                        {c.model}
-                      </span>
-                    )}
-                  </div>
+                  <X size={12} />
                 </button>
+              )}
+            </div>
+          ) : (
+            <button
+              onClick={() => setSidebarOpen(true)}
+              className="mb-3 flex h-8 w-8 items-center justify-center rounded-xl text-white/40 hover:bg-white/5 hover:text-white transition mx-auto"
+            >
+              <Search size={16} />
+            </button>
+          )}
 
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    chat.handleDeleteChat(c.id);
-                  }}
-                  className="shrink-0 opacity-0 group-hover:opacity-100 text-white/30 hover:text-red-400 transition"
+          {/* Chat list */}
+          <div
+            className={`flex-1 space-y-1 overflow-y-auto ${!sidebarOpen ? "hidden" : ""}`}
+          >
+            {Object.values(chats)
+              .filter((c) =>
+                c.title.toLowerCase().includes(searchQuery.toLowerCase()),
+              )
+              .map((c) => (
+                <div
+                  key={c.id}
+                  className={`group relative flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium transition
+            ${currentChatId === c.id ? "bg-white/10 text-white" : "text-white/50 hover:bg-white/5 hover:text-white"}`}
                 >
-                  <Trash2 size={14} />
-                </button>
-              </div>
-            ))}
+                  {/* Chat title button */}
+                  <button
+                    onClick={() => chat.handleOpenChat(c.id, chats)}
+                    type="button"
+                    className="flex flex-1 items-center gap-2 min-w-0 text-left cursor-pointer"
+                  >
+                    <MessageSquare size={14} className="shrink-0 opacity-60" />
+                    {sidebarOpen && (
+                      <div className="flex flex-col min-w-0">
+                        <span className="truncate">{c.title}</span>
+                        {c.model && (
+                          <span className="text-xs text-white/30 capitalize">
+                            {c.model}
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </button>
+
+                  {/* Three-dot menu button — only when sidebar is open */}
+                  {sidebarOpen && (
+                    <div className="relative" ref={chatMenuRef}>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setOpenMenuChatId(
+                            openMenuChatId === c.id ? null : c.id,
+                          );
+                        }}
+                        className="shrink-0 opacity-0 group-hover:opacity-100 text-white/30 hover:text-white transition p-1 rounded-lg hover:bg-white/10"
+                      >
+                        <MoreHorizontal size={14} />
+                      </button>
+
+                      {/* Dropdown menu */}
+                      {openMenuChatId === c.id && (
+                        <div className="absolute right-0 top-7 z-20 w-36 rounded-xl border border-white/10 bg-[#0e1117] py-1 shadow-xl">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              chat.handleDeleteChat(c.id);
+                              setOpenMenuChatId(null);
+                            }}
+                            className="flex w-full items-center gap-2 px-3 py-2 text-sm text-white/60 hover:text-red-400 hover:bg-white/5 transition"
+                          >
+                            <Trash2 size={13} />
+                            Delete
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              ))}
+
+            {/* Empty search result */}
+            {searchQuery &&
+              Object.values(chats).filter((c) =>
+                c.title.toLowerCase().includes(searchQuery.toLowerCase()),
+              ).length === 0 && (
+                <p className="px-3 py-4 text-center text-xs text-white/25">
+                  No chats found
+                </p>
+              )}
           </div>
 
           {/* Profile card */}
@@ -267,7 +374,7 @@ const Dashboard = () => {
                   className="flex w-full items-center gap-2 px-3 py-2 text-sm text-white/60 hover:text-white hover:bg-white/5 transition"
                 >
                   <LogOut size={14} />
-                  Logout
+                  {sidebarOpen && "Logout"}
                 </button>
               </div>
             )}
@@ -279,16 +386,20 @@ const Dashboard = () => {
               <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white/10 text-xs font-semibold text-white uppercase">
                 {user?.username?.[0] || "U"}
               </div>
-              <div className="flex flex-col items-start min-w-0">
-                <span className="truncate text-sm font-medium text-white/80">
-                  {user?.username || "User"}
-                </span>
-                <span className="text-xs text-white/30">Free Plan</span>
-              </div>
-              <ChevronDown
-                size={13}
-                className={`ml-auto shrink-0 text-white/30 transition-transform ${profileMenuOpen ? "rotate-180" : ""}`}
-              />
+              {sidebarOpen && (
+                <div className="flex flex-col items-start min-w-0">
+                  <span className="truncate text-sm font-medium text-white/80">
+                    {user?.username || "User"}
+                  </span>
+                  <span className="text-xs text-white/30">Free Plan</span>
+                </div>
+              )}
+              {sidebarOpen && (
+                <ChevronDown
+                  size={13}
+                  className={`ml-auto shrink-0 text-white/30 transition-transform ${profileMenuOpen ? "rotate-180" : ""}`}
+                />
+              )}
             </button>
           </div>
         </aside>
@@ -324,11 +435,14 @@ const Dashboard = () => {
                 {message.file && (
                   <div className="mb-2">
                     {message.file.mimeType?.startsWith("image/") ? (
-                    <img
-                      src={message.file.previewUrl || `data:${message.file.mimeType};base64,${message.file.base64}`}
-                      alt={message.file.name}
-                      className="max-h-48 max-w-xs rounded-xl object-cover"
-                    />
+                      <img
+                        src={
+                          message.file.previewUrl ||
+                          `data:${message.file.mimeType};base64,${message.file.base64}`
+                        }
+                        alt={message.file.name}
+                        className="max-h-48 max-w-xs rounded-xl object-cover"
+                      />
                     ) : (
                       <div className="flex items-center gap-2 rounded-lg border border-white/20 bg-white/5 px-3 py-2 text-xs text-white/60">
                         <FileText size={13} />
