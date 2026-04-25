@@ -4,6 +4,7 @@ import { useSelector } from "react-redux";
 import { useChat } from "../hooks/useChat";
 import remarkGfm from "remark-gfm";
 import { useAuth } from "../../auth/hook/useAuth";
+import { usePdfExport } from "../hooks/usePdfExport";
 import {
   Plus,
   Mic,
@@ -18,6 +19,7 @@ import {
   MoreHorizontal,
   PanelLeftClose,
   PanelLeftOpen,
+  Download,
 } from "lucide-react";
 
 const MODELS = [
@@ -44,6 +46,7 @@ const Dashboard = () => {
   const isLoading = useSelector((state) => state.chat.isLoading);
   const user = useSelector((state) => state.auth.user);
   const auth = useAuth();
+  const { exportChat } = usePdfExport();
 
   // Input state
   const [chatInput, setChatInput] = useState("");
@@ -101,6 +104,17 @@ const Dashboard = () => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  // Handle PDF export for a given chatId
+  const handleExportPdf = async (chatId) => {
+    const chatData = chats[chatId];
+    if (!chatData) return;
+    await exportChat({
+      title: chatData.title,
+      model: chatData.model,
+      messages: chatData.messages,
+    });
+  };
+
   // Handle file selection
   const handleFileChange = (e) => {
     const file = e.target.files?.[0];
@@ -147,7 +161,6 @@ const Dashboard = () => {
       return;
     }
 
-    // If already recording — stop
     if (isRecording) {
       recognitionRef.current?.stop();
       setIsRecording(false);
@@ -158,28 +171,19 @@ const Dashboard = () => {
     recognition.lang = "en-IN";
     recognition.interimResults = false;
     recognition.maxAlternatives = 1;
-    recognition.continuous = false; // single shot — most reliable in Chrome
+    recognition.continuous = false;
 
-    recognition.onstart = () => {
-      setIsRecording(true);
-    };
+    recognition.onstart = () => setIsRecording(true);
 
     recognition.onresult = (e) => {
       const transcript = e.results[0][0].transcript;
-      console.log("Speech transcript:", transcript);
       setChatInput((prev) => (prev ? prev + " " + transcript : transcript));
     };
 
-    recognition.onnomatch = () => {
-      console.log("No match found for speech");
-      setIsRecording(false);
-    };
+    recognition.onnomatch = () => setIsRecording(false);
 
     recognition.onerror = (e) => {
       if (e.error === "no-speech") {
-        console.log(
-          "No speech detected — try speaking louder or closer to mic",
-        );
         setIsRecording(false);
         return;
       }
@@ -187,9 +191,7 @@ const Dashboard = () => {
       setIsRecording(false);
     };
 
-    recognition.onend = () => {
-      setIsRecording(false);
-    };
+    recognition.onend = () => setIsRecording(false);
 
     recognitionRef.current = recognition;
     recognition.start();
@@ -215,15 +217,17 @@ const Dashboard = () => {
     setFileAttachment(null);
   };
 
+  const currentChat = currentChatId ? chats[currentChatId] : null;
+
   return (
     <main className="min-h-screen w-full bg-[#07090f] p-3 text-white md:p-5">
       <section className="mx-auto flex h-[calc(100vh-1.5rem)] w-full gap-4 md:h-[calc(100vh-2.5rem)] md:gap-6">
-        {/* Sidebar */}
-        {/* Sidebar — collapsible, with search and chat menu */}
+
+        {/* ── SIDEBAR ── */}
         <aside
           className={`hidden h-full shrink-0 rounded-3xl bg-[#080b12] p-4 md:flex md:flex-col transition-all duration-300 ${sidebarOpen ? "w-72" : "w-16"}`}
         >
-          {/* Top row — title + collapse button */}
+          {/* Top row */}
           <div className="mb-5 flex items-center justify-between">
             {sidebarOpen && (
               <h1 className="text-2xl font-bold tracking-tight text-white">
@@ -251,7 +255,7 @@ const Dashboard = () => {
             {sidebarOpen && "New Chat"}
           </button>
 
-          {/* Search bar — only when sidebar is open */}
+          {/* Search bar */}
           {sidebarOpen ? (
             <div className="mb-3 flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2">
               <Search size={13} className="shrink-0 text-white/30" />
@@ -281,18 +285,16 @@ const Dashboard = () => {
           )}
 
           {/* Chat list */}
-          <div
-            className={`flex-1 space-y-1 overflow-y-auto ${!sidebarOpen ? "hidden" : ""}`}
-          >
+          <div className={`flex-1 space-y-1 overflow-y-auto ${!sidebarOpen ? "hidden" : ""}`}>
             {Object.values(chats)
               .filter((c) =>
-                c.title.toLowerCase().includes(searchQuery.toLowerCase()),
+                c.title.toLowerCase().includes(searchQuery.toLowerCase())
               )
               .map((c) => (
                 <div
                   key={c.id}
                   className={`group relative flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium transition
-            ${currentChatId === c.id ? "bg-white/10 text-white" : "text-white/50 hover:bg-white/5 hover:text-white"}`}
+                    ${currentChatId === c.id ? "bg-white/10 text-white" : "text-white/50 hover:bg-white/5 hover:text-white"}`}
                 >
                   {/* Chat title button */}
                   <button
@@ -313,25 +315,38 @@ const Dashboard = () => {
                     )}
                   </button>
 
-                  {/* Three-dot menu button — only when sidebar is open */}
+                  {/* Three-dot menu */}
                   {sidebarOpen && (
                     <div className="relative" ref={chatMenuRef}>
                       <button
                         type="button"
                         onClick={(e) => {
                           e.stopPropagation();
-                          setOpenMenuChatId(
-                            openMenuChatId === c.id ? null : c.id,
-                          );
+                          setOpenMenuChatId(openMenuChatId === c.id ? null : c.id);
                         }}
                         className="shrink-0 opacity-0 group-hover:opacity-100 text-white/30 hover:text-white transition p-1 rounded-lg hover:bg-white/10"
                       >
                         <MoreHorizontal size={14} />
                       </button>
 
-                      {/* Dropdown menu */}
+                      {/* Dropdown */}
                       {openMenuChatId === c.id && (
-                        <div className="absolute right-0 top-7 z-20 w-36 rounded-xl border border-white/10 bg-[#0e1117] py-1 shadow-xl">
+                        <div className="absolute right-0 top-7 z-20 w-40 rounded-xl border border-white/10 bg-[#0e1117] py-1 shadow-xl">
+                          {/* Export PDF */}
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleExportPdf(c.id);
+                              setOpenMenuChatId(null);
+                            }}
+                            className="flex w-full items-center gap-2 px-3 py-2 text-sm text-white/60 hover:text-[#31b8c6] hover:bg-white/5 transition"
+                          >
+                            <Download size={13} />
+                            Export PDF
+                          </button>
+
+                          {/* Delete */}
                           <button
                             type="button"
                             onClick={(e) => {
@@ -351,10 +366,10 @@ const Dashboard = () => {
                 </div>
               ))}
 
-            {/* Empty search result */}
+            {/* Empty search */}
             {searchQuery &&
               Object.values(chats).filter((c) =>
-                c.title.toLowerCase().includes(searchQuery.toLowerCase()),
+                c.title.toLowerCase().includes(searchQuery.toLowerCase())
               ).length === 0 && (
                 <p className="px-3 py-4 text-center text-xs text-white/25">
                   No chats found
@@ -404,9 +419,37 @@ const Dashboard = () => {
           </div>
         </aside>
 
-        {/* Main chat area */}
+        {/* ── MAIN CHAT AREA ── */}
         <section className="relative mx-auto flex h-full min-w-0 flex-1 flex-col overflow-hidden">
-          {/* Messages */}
+
+          {/* ── CHAT HEADER — shows when a chat is open ── */}
+          {currentChat && (
+            <div className="flex items-center justify-between px-2 pb-3 pt-1 border-b border-white/5">
+              <div className="flex flex-col min-w-0">
+                <h2 className="truncate text-sm font-semibold text-white/90 max-w-xs md:max-w-md">
+                  {currentChat.title}
+                </h2>
+                {currentChat.model && (
+                  <span className="text-xs text-white/30 capitalize">
+                    {currentChat.model}
+                  </span>
+                )}
+              </div>
+
+              {/* Export PDF button */}
+              <button
+                type="button"
+                onClick={() => handleExportPdf(currentChatId)}
+                title="Export chat as PDF"
+                className="flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-white/50 hover:text-[#31b8c6] hover:border-[#31b8c6]/30 hover:bg-[#31b8c6]/5 transition"
+              >
+                <Download size={13} />
+                <span className="hidden sm:inline">Export PDF</span>
+              </button>
+            </div>
+          )}
+
+          {/* ── MESSAGES ── */}
           <div className="flex-1 flex flex-col overflow-y-auto pb-40 pt-4 px-2 space-y-4">
             {!currentChatId && (
               <div className="flex flex-1 flex-col items-center justify-center gap-3 text-white/30 h-full">
@@ -431,7 +474,7 @@ const Dashboard = () => {
                     : "mr-auto text-white/90"
                 }`}
               >
-                {/* File attachment indicator */}
+                {/* File attachment */}
                 {message.file && (
                   <div className="mb-2">
                     {message.file.mimeType?.startsWith("image/") ? (
@@ -497,7 +540,7 @@ const Dashboard = () => {
             <div ref={messagesEndRef} />
           </div>
 
-          {/* Input footer */}
+          {/* ── INPUT FOOTER ── */}
           <div className="absolute bottom-2 left-2 right-2">
             <div className="rounded-2xl border border-white/15 bg-[#0e1117] p-3 shadow-xl">
               {/* File attachment preview */}
@@ -540,8 +583,7 @@ const Dashboard = () => {
                 type="text"
                 value={chatInput}
                 onChange={(e) => {
-                  if (e.target.value.length <= 2000)
-                    setChatInput(e.target.value);
+                  if (e.target.value.length <= 2000) setChatInput(e.target.value);
                 }}
                 onKeyDown={(e) => e.key === "Enter" && handleSubmitMessage(e)}
                 placeholder={isRecording ? "Listening..." : "Ask anything..."}
@@ -550,9 +592,7 @@ const Dashboard = () => {
 
               {chatInput.length > 1800 && (
                 <p className="px-2 pt-1 text-right text-xs text-white/30">
-                  <span
-                    className={chatInput.length >= 2000 ? "text-red-400" : ""}
-                  >
+                  <span className={chatInput.length >= 2000 ? "text-red-400" : ""}>
                     {chatInput.length}
                   </span>
                   /2000
@@ -561,7 +601,6 @@ const Dashboard = () => {
 
               <div className="mt-2 flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  {/* Hidden file input */}
                   <input
                     ref={fileInputRef}
                     type="file"
@@ -569,7 +608,6 @@ const Dashboard = () => {
                     onChange={handleFileChange}
                     className="hidden"
                   />
-                  {/* + button */}
                   <button
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
@@ -613,19 +651,17 @@ const Dashboard = () => {
                     )}
                   </div>
 
-                  {/* Mic — only when no text and no attachment */}
+                  {/* Mic */}
                   {!chatInput.trim() && !fileAttachment && (
                     <button
                       type="button"
                       onClick={handleMicClick}
                       className={`relative flex h-8 w-8 items-center justify-center rounded-full border transition
-                        ${
-                          isRecording
-                            ? "border-red-400 text-red-400"
-                            : "border-white/20 text-white/50 hover:text-white hover:border-white/50"
+                        ${isRecording
+                          ? "border-red-400 text-red-400"
+                          : "border-white/20 text-white/50 hover:text-white hover:border-white/50"
                         }`}
                     >
-                      {/* Pulse ring while recording */}
                       {isRecording && (
                         <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-400 opacity-20" />
                       )}
@@ -633,7 +669,7 @@ const Dashboard = () => {
                     </button>
                   )}
 
-                  {/* Send — when there's text or attachment */}
+                  {/* Send */}
                   {(chatInput.trim() || fileAttachment) && (
                     <button
                       type="button"
