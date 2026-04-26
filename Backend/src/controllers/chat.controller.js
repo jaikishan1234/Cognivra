@@ -4,7 +4,7 @@ import messageModel from "../models/message.model.js";
 
 export async function sendMessage(req, res) {
     try {
-        const { message, chat: chatId, model = "mistral" } = req.body; // ← add model
+        const { message, chat: chatId, model = "mistral" } = req.body;
 
         let title = null, chat = null;
 
@@ -13,7 +13,7 @@ export async function sendMessage(req, res) {
             chat = await chatModel.create({
                 user: req.user.id,
                 title,
-                model  // ← save model to chat
+                model
             });
         }
 
@@ -25,7 +25,7 @@ export async function sendMessage(req, res) {
 
         const messages = await messageModel.find({ chat: chatId || chat._id });
 
-        const result = await generateResponse(messages, model); // ← pass model
+        const result = await generateResponse(messages, model);
 
         const aiMessage = await messageModel.create({
             chat: chatId || chat._id,
@@ -47,7 +47,8 @@ export async function sendMessage(req, res) {
 export async function getChats(req, res) {
     const user = req.user
 
-    const chats = await chatModel.find({ user: user.id })
+    // Sort by updatedAt descending — latest chats on top
+    const chats = await chatModel.find({ user: user.id }).sort({ updatedAt: -1 })
 
     res.status(200).json({
         message: "Chats retrieved successfully",
