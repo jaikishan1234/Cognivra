@@ -12,6 +12,23 @@ const chatSchema = new mongoose.Schema(
             default: 'New Chat',
             trim: true,
         },
+        model: {
+            type: String,
+            default: null,
+        },
+        // Share feature
+        shareToken: {
+            type: String,
+            default: null,
+        },
+        shareExpiry: {
+            type: Date,
+            default: null,
+        },
+        shareActive: {
+            type: Boolean,
+            default: false,
+        },
     },
     { timestamps: true }
 );
