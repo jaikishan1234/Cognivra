@@ -47,3 +47,15 @@ export async function refreshToken() {
     const response = await api.post("/api/auth/refresh")
     return response.data
 }
+
+/* Update the logged-in user's username */
+export async function updateUsername({ newUsername }) {
+    const response = await api.post("/api/user/update-username", { newUsername })
+    return response.data
+}
+
+/* Update the logged-in user's password */
+export async function updatePassword({ oldPassword, newPassword }) {
+    const response = await api.post("/api/user/update-password", { oldPassword, newPassword })
+    return response.data
+}

@@ -7,13 +7,14 @@ import remarkGfm from "remark-gfm";
 import { useAuth } from "../../auth/hook/useAuth";
 import { usePdfExport } from "../hooks/usePdfExport";
 import { shareChat, revokeShare } from "../service/chat.api";
+import UserSettings from "./UserSettings.jsx";
 import { toast } from "sonner";
 import {
   Plus, Mic, ArrowUp, ChevronDown, MessageSquare, LogOut,
   Trash2, X, FileText, Search, MoreHorizontal, PanelLeftClose,
-  PanelLeftOpen, Download, EyeOff, Eye, ChevronRight, Share2,
+  PanelLeftOpen, Download, EyeOff, Eye, EyeClosed, ChevronRight, Share2,
   Copy, Check, Link as LinkIcon, Clock, Menu,
-  ThumbsUp, ThumbsDown, RotateCcw, Pencil,
+  ThumbsUp, ThumbsDown, RotateCcw, Pencil, Settings,
 } from "lucide-react";
 
 const MODELS = [
@@ -59,9 +60,11 @@ const Dashboard = () => {
   const [feedbackMap,   setFeedbackMap]   = useState({});     // { [index]: "up" | "down" }
   const [editingIndex,  setEditingIndex]  = useState(null);   // index of message being edited
 
-  // Input state
+  /* Input state */
   const [chatInput,      setChatInput]      = useState("");
-  const [selectedModel,  setSelectedModel]  = useState("mistral");
+  const [selectedModel,  setSelectedModel]  = useState(
+    () => { try { return localStorage.getItem("cognivra_default_model") || "mistral"; } catch { return "mistral"; } }
+  );
   const [fileAttachment, setFileAttachment] = useState(null);
 
   // Sidebar state
@@ -73,9 +76,10 @@ const Dashboard = () => {
   const [hiddenChatIds,     setHiddenChatIds]      = useState(loadHiddenChats);
   const [hiddenSectionOpen, setHiddenSectionOpen]  = useState(false);
 
-  // Dropdown/menu state
+  /* Dropdown/menu state */
   const [modelDropdownOpen, setModelDropdownOpen] = useState(false);
   const [profileMenuOpen,   setProfileMenuOpen]   = useState(false);
+  const [settingsOpen,      setSettingsOpen]      = useState(false);
 
   // Speech
   const [isRecording, setIsRecording] = useState(false);
@@ -123,7 +127,7 @@ const Dashboard = () => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // ── Hide / Unhide ──
+  // Hide / Unhide 
   const handleHideChat = (chatId) => {
     const updated = new Set(hiddenChatIds);
     updated.add(chatId);
@@ -139,7 +143,7 @@ const Dashboard = () => {
     saveHiddenChats(updated);
   };
 
-  // ── PDF Export ──
+  // PDF Export
   const handleExportPdf = async (chatId) => {
     const chatData = chats[chatId];
     if (!chatData) return;
@@ -195,7 +199,7 @@ const Dashboard = () => {
     }
   };
 
-  // ── File upload ──
+  // File upload
   const handleFileChange = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -223,14 +227,14 @@ const Dashboard = () => {
 
   const handleRemoveAttachment = () => setFileAttachment(null);
 
-  // ── Copy message ──
+  // Copy message 
   const handleCopyMessage = (content, index) => {
     navigator.clipboard.writeText(content);
     setCopiedIndex(index);
     setTimeout(() => setCopiedIndex(null), 2000);
   };
 
-  // ── Regenerate last AI response ──
+  // Regenerate last AI response 
   const handleRegenerate = () => {
     if (!currentChatId || isStreaming) return;
     const messages = chats[currentChatId]?.messages || [];
@@ -249,7 +253,7 @@ const Dashboard = () => {
     });
   };
 
-  // ── Thumbs feedback ──
+  // Thumbs feedback
   const handleFeedback = (index, value) => {
     setFeedbackMap((prev) => ({
       ...prev,
@@ -257,14 +261,14 @@ const Dashboard = () => {
     }));
   };
 
-  // ── Edit user message ──
+  // Edit user message
   const handleEditMessage = (content, index) => {
     if (isStreaming) return;
     setChatInput(content);
     setEditingIndex(index);
   };
 
-  // ── Mic ──
+  // Mic 
   const handleMicClick = () => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) { alert("Speech recognition not supported. Try Chrome."); return; }
@@ -287,7 +291,7 @@ const Dashboard = () => {
     recognition.start();
   };
 
-  // ── Send message ──
+  // Send message 
   const handleSubmitMessage = (e) => {
     e?.preventDefault();
     const trimmed = chatInput.trim();
@@ -309,7 +313,7 @@ const Dashboard = () => {
     setFileAttachment(null);
   };
 
-  // ── Sorted + filtered chat lists ──
+  // Sorted + filtered chat lists 
   const allChats = Object.values(chats).sort(
     (a, b) => new Date(b.lastUpdated) - new Date(a.lastUpdated)
   );
@@ -322,7 +326,7 @@ const Dashboard = () => {
 
   const currentChat = currentChatId ? chats[currentChatId] : null;
 
-  // ── Reusable chat row ──
+  // Reusable chat row
   const renderChatRow = (c, isHidden = false) => (
     <div
       key={c.id}
@@ -354,7 +358,7 @@ const Dashboard = () => {
               const btn = menuButtonRefs.current[c.id];
               if (btn) {
                 const rect = btn.getBoundingClientRect();
-                setDropdownDirection(window.innerHeight - rect.bottom < 220 ? "up" : "down");
+                setDropdownDirection(window.innerHeight - rect.bottom < 280 ? "up" : "down");
               }
               setOpenMenuChatId(c.id);
             }
@@ -436,7 +440,7 @@ const Dashboard = () => {
     <main className="min-h-screen w-full bg-[#07090f] p-3 text-white md:p-5">
       <section className="mx-auto flex h-[calc(100vh-1.5rem)] w-full gap-4 md:h-[calc(100vh-2.5rem)] md:gap-6">
 
-        {/* ── MOBILE BACKDROP ── */}
+        {/*  MOBILE BACKDROP */}
         {mobileSidebarOpen && (
           <div
             className="fixed inset-0 z-30 bg-black/60 backdrop-blur-sm md:hidden"
@@ -539,7 +543,19 @@ const Dashboard = () => {
           <div className="relative mt-auto" ref={profileMenuRef}>
             {profileMenuOpen && (
               <div className="absolute bottom-14 left-0 right-0 rounded-xl border border-white/10 bg-[#0e1117] overflow-hidden shadow-xl">
-                <button onClick={() => { auth.handleLogout(); setProfileMenuOpen(false); }} className="flex w-full items-center gap-2 px-3 py-2 text-sm text-white/60 hover:text-white hover:bg-white/5 transition">
+                {/* Settings option */}
+                <button
+                  onClick={() => { setSettingsOpen(true); setProfileMenuOpen(false); }}
+                  className="flex w-full items-center gap-2 px-3 py-2 text-sm text-white/60 hover:text-white hover:bg-white/5 transition"
+                >
+                  <Settings size={14} />
+                  {sidebarOpen && "Settings"}
+                </button>
+                <div className="border-t border-white/5" />
+                <button
+                  onClick={() => { auth.handleLogout(); setProfileMenuOpen(false); }}
+                  className="flex w-full items-center gap-2 px-3 py-2 text-sm text-white/60 hover:text-white hover:bg-white/5 transition"
+                >
                   <LogOut size={14} />
                   {sidebarOpen && "Logout"}
                 </button>
@@ -562,7 +578,7 @@ const Dashboard = () => {
           </div>
         </aside>
 
-        {/* ── MAIN CHAT AREA ── */}
+        {/* MAIN CHAT AREA */}
         <section className="relative mx-auto flex h-full min-w-0 flex-1 flex-col overflow-hidden">
 
           {/* Chat header */}
@@ -839,7 +855,7 @@ const Dashboard = () => {
         </section>
       </section>
 
-      {/* ── SHARE MODAL ── */}
+      {/* SHARE MODAL */}
       {shareModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           {/* Backdrop */}
@@ -939,6 +955,8 @@ const Dashboard = () => {
           </div>
         </div>
       )}
+      {/* USER SETTINGS MODAL */}
+      {settingsOpen && <UserSettings onClose={() => setSettingsOpen(false)} />}
     </main>
   );
 };

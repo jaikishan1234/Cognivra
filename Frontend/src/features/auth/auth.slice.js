@@ -11,6 +11,12 @@ const authSlice = createSlice({
         setUser: (state, action) => {
             state.user = action.payload
         },
+        /* Merges partial user fields — used after username update so sidebar reflects instantly */
+        updateUser: (state, action) => {
+            if (state.user) {
+                state.user = { ...state.user, ...action.payload }
+            }
+        },
         setLoading: (state, action) => {
             state.loading = action.payload
         },
@@ -20,5 +26,5 @@ const authSlice = createSlice({
     }
 })
 
-export const { setUser, setLoading, setError } = authSlice.actions
+export const { setUser, updateUser, setLoading, setError } = authSlice.actions
 export default authSlice.reducer
