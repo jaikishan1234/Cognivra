@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
-import { useSelector } from "react-redux";
+import { useSelector, useDispatch } from "react-redux";
+import { removeLastAiMessage, removeMessagesFrom } from "../chat.slice.js";
 import { useChat } from "../hooks/useChat";
 import remarkGfm from "remark-gfm";
 import { useAuth } from "../../auth/hook/useAuth";
@@ -12,6 +13,7 @@ import {
   Trash2, X, FileText, Search, MoreHorizontal, PanelLeftClose,
   PanelLeftOpen, Download, EyeOff, Eye, ChevronRight, Share2,
   Copy, Check, Link as LinkIcon, Clock, Menu,
+  ThumbsUp, ThumbsDown, RotateCcw, Pencil,
 } from "lucide-react";
 
 const MODELS = [
@@ -43,6 +45,7 @@ const saveHiddenChats = (hiddenSet) => {
 
 const Dashboard = () => {
   const chat        = useChat();
+  const dispatch    = useDispatch();
   const chats       = useSelector((state) => state.chat.chats);
   const currentChatId = useSelector((state) => state.chat.currentChatId);
   const isStreaming = useSelector((state) => state.chat.isStreaming);
@@ -50,6 +53,11 @@ const Dashboard = () => {
   const user        = useSelector((state) => state.auth.user);
   const auth        = useAuth();
   const { exportChat } = usePdfExport();
+
+  // Message action state
+  const [copiedIndex,   setCopiedIndex]   = useState(null);   // index of copied message
+  const [feedbackMap,   setFeedbackMap]   = useState({});     // { [index]: "up" | "down" }
+  const [editingIndex,  setEditingIndex]  = useState(null);   // index of message being edited
 
   // Input state
   const [chatInput,      setChatInput]      = useState("");
@@ -215,6 +223,47 @@ const Dashboard = () => {
 
   const handleRemoveAttachment = () => setFileAttachment(null);
 
+  // ── Copy message ──
+  const handleCopyMessage = (content, index) => {
+    navigator.clipboard.writeText(content);
+    setCopiedIndex(index);
+    setTimeout(() => setCopiedIndex(null), 2000);
+  };
+
+  // ── Regenerate last AI response ──
+  const handleRegenerate = () => {
+    if (!currentChatId || isStreaming) return;
+    const messages = chats[currentChatId]?.messages || [];
+    // Find last user message
+    let lastUserMsg = null;
+    for (let i = messages.length - 1; i >= 0; i--) {
+      if (messages[i].role === "user") { lastUserMsg = messages[i]; break; }
+    }
+    if (!lastUserMsg) return;
+    dispatch(removeLastAiMessage({ chatId: currentChatId }));
+    chat.handleSendMessage({
+      message: lastUserMsg.content,
+      chatId: currentChatId,
+      model: selectedModel,
+      file: lastUserMsg.file || null,
+    });
+  };
+
+  // ── Thumbs feedback ──
+  const handleFeedback = (index, value) => {
+    setFeedbackMap((prev) => ({
+      ...prev,
+      [index]: prev[index] === value ? null : value,
+    }));
+  };
+
+  // ── Edit user message ──
+  const handleEditMessage = (content, index) => {
+    if (isStreaming) return;
+    setChatInput(content);
+    setEditingIndex(index);
+  };
+
   // ── Mic ──
   const handleMicClick = () => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -243,6 +292,13 @@ const Dashboard = () => {
     e?.preventDefault();
     const trimmed = chatInput.trim();
     if ((!trimmed && !fileAttachment) || isStreaming) return;
+
+    // Edit mode — remove messages from that index onward, then re-send
+    if (editingIndex !== null && currentChatId) {
+      dispatch(removeMessagesFrom({ chatId: currentChatId, fromIndex: editingIndex }));
+      setEditingIndex(null);
+    }
+
     chat.handleSendMessage({
       message: trimmed || (fileAttachment ? "Attached file" : ""),
       chatId: currentChatId,
@@ -575,38 +631,112 @@ const Dashboard = () => {
               </div>
             )}
 
-            {chats[currentChatId]?.messages.map((message, index) => (
-              <div key={index} className={`max-w-[80%] w-fit rounded-2xl px-4 py-3 text-sm md:text-base ${message.role === "user" ? "ml-auto rounded-br-none bg-white/10 text-white" : "mr-auto text-white/90"}`}>
-                {message.file && (
-                  <div className="mb-2">
-                    {message.file.mimeType?.startsWith("image/") ? (
-                      <img src={message.file.previewUrl || `data:${message.file.mimeType};base64,${message.file.base64}`} alt={message.file.name} className="max-h-48 max-w-xs rounded-xl object-cover" />
-                    ) : (
-                      <div className="flex items-center gap-2 rounded-lg border border-white/20 bg-white/5 px-3 py-2 text-xs text-white/60">
-                        <FileText size={13} />
-                        <span className="truncate max-w-[180px]">{message.file.name}</span>
+            {chats[currentChatId]?.messages.map((message, index) => {
+              const isUser = message.role === "user";
+              const isLastAi = !isUser && (() => {
+                const msgs = chats[currentChatId]?.messages || [];
+                for (let i = msgs.length - 1; i >= 0; i--) {
+                  if (msgs[i].role === "ai") return i === index;
+                }
+                return false;
+              })();
+
+              return (
+                <div key={index} className={`group/msg flex flex-col ${isUser ? "items-end" : "items-start"}`}>
+                  {/* Bubble */}
+                  <div className={`max-w-[85%] w-fit rounded-2xl px-4 py-3 text-sm md:text-base ${isUser ? "rounded-br-none bg-white/10 text-white" : "text-white/90"}`}>
+                    {message.file && (
+                      <div className="mb-2">
+                        {message.file.mimeType?.startsWith("image/") ? (
+                          <img src={message.file.previewUrl || `data:${message.file.mimeType};base64,${message.file.base64}`} alt={message.file.name} className="max-h-48 max-w-xs rounded-xl object-cover" />
+                        ) : (
+                          <div className="flex items-center gap-2 rounded-lg border border-white/20 bg-white/5 px-3 py-2 text-xs text-white/60">
+                            <FileText size={13} />
+                            <span className="truncate max-w-[180px]">{message.file.name}</span>
+                          </div>
+                        )}
                       </div>
                     )}
+                    {isUser ? (
+                      <p>{message.content}</p>
+                    ) : (
+                      <ReactMarkdown
+                        components={{
+                          p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
+                          ul: ({ children }) => <ul className="mb-2 list-disc pl-5">{children}</ul>,
+                          ol: ({ children }) => <ol className="mb-2 list-decimal pl-5">{children}</ol>,
+                          code: ({ children }) => <code className="rounded bg-white/10 px-1 py-0.5 text-sm">{children}</code>,
+                          pre: ({ children }) => <pre className="mb-2 overflow-x-auto rounded-xl bg-black/30 p-3">{children}</pre>,
+                        }}
+                        remarkPlugins={[remarkGfm]}
+                      >
+                        {message.content}
+                      </ReactMarkdown>
+                    )}
                   </div>
-                )}
-                {message.role === "user" ? (
-                  <p>{message.content}</p>
-                ) : (
-                  <ReactMarkdown
-                    components={{
-                      p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
-                      ul: ({ children }) => <ul className="mb-2 list-disc pl-5">{children}</ul>,
-                      ol: ({ children }) => <ol className="mb-2 list-decimal pl-5">{children}</ol>,
-                      code: ({ children }) => <code className="rounded bg-white/10 px-1 py-0.5 text-sm">{children}</code>,
-                      pre: ({ children }) => <pre className="mb-2 overflow-x-auto rounded-xl bg-black/30 p-3">{children}</pre>,
-                    }}
-                    remarkPlugins={[remarkGfm]}
-                  >
-                    {message.content}
-                  </ReactMarkdown>
-                )}
-              </div>
-            ))}
+
+                  {/* Action bar */}
+                  <div className={`mt-1 flex items-center gap-1 opacity-0 group-hover/msg:opacity-100 transition-opacity duration-150 ${isUser ? "flex-row-reverse" : "flex-row"}`}>
+                    {/* Copy — all messages */}
+                    <button
+                      type="button"
+                      onClick={() => handleCopyMessage(message.content, index)}
+                      className="flex h-6 w-6 items-center justify-center rounded-lg text-white/25 hover:text-white/70 hover:bg-white/5 transition"
+                      title="Copy"
+                    >
+                      {copiedIndex === index ? <Check size={12} className="text-[#31b8c6]" /> : <Copy size={12} />}
+                    </button>
+
+                    {/* AI-only actions */}
+                    {!isUser && (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => handleFeedback(index, "up")}
+                          className={`flex h-6 w-6 items-center justify-center rounded-lg transition hover:bg-white/5 ${feedbackMap[index] === "up" ? "text-[#31b8c6]" : "text-white/25 hover:text-white/70"}`}
+                          title="Good response"
+                        >
+                          <ThumbsUp size={12} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleFeedback(index, "down")}
+                          className={`flex h-6 w-6 items-center justify-center rounded-lg transition hover:bg-white/5 ${feedbackMap[index] === "down" ? "text-red-400" : "text-white/25 hover:text-white/70"}`}
+                          title="Bad response"
+                        >
+                          <ThumbsDown size={12} />
+                        </button>
+                        {/* Regenerate — last AI message only */}
+                        {isLastAi && (
+                          <button
+                            type="button"
+                            onClick={handleRegenerate}
+                            disabled={isStreaming}
+                            className="flex h-6 w-6 items-center justify-center rounded-lg text-white/25 hover:text-white/70 hover:bg-white/5 transition disabled:opacity-30"
+                            title="Regenerate response"
+                          >
+                            <RotateCcw size={12} />
+                          </button>
+                        )}
+                      </>
+                    )}
+
+                    {/* Edit — user messages only */}
+                    {isUser && (
+                      <button
+                        type="button"
+                        onClick={() => handleEditMessage(message.content, index)}
+                        disabled={isStreaming}
+                        className={`flex h-6 w-6 items-center justify-center rounded-lg transition hover:bg-white/5 disabled:opacity-30 ${editingIndex === index ? "text-[#31b8c6]" : "text-white/25 hover:text-white/70"}`}
+                        title="Edit message"
+                      >
+                        <Pencil size={12} />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
 
             {isStreaming && (
               <div className="mr-auto flex gap-1 px-4 py-3">
@@ -621,6 +751,18 @@ const Dashboard = () => {
           {/* Input footer */}
           <div className="absolute bottom-0 left-0 right-0 p-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
             <div className="rounded-2xl border border-white/15 bg-[#0e1117] p-3 shadow-xl">
+              {/* Edit mode indicator */}
+              {editingIndex !== null && (
+                <div className="mb-2 flex items-center justify-between rounded-lg bg-[#31b8c6]/10 border border-[#31b8c6]/20 px-3 py-1.5">
+                  <div className="flex items-center gap-2 text-xs text-[#31b8c6]">
+                    <Pencil size={11} />
+                    <span>Editing message</span>
+                  </div>
+                  <button type="button" onClick={() => { setEditingIndex(null); setChatInput(""); }} className="text-white/30 hover:text-white/70 transition">
+                    <X size={11} />
+                  </button>
+                </div>
+              )}
               {fileAttachment && (
                 <div className="mb-2 flex items-center gap-2">
                   {fileAttachment.previewUrl ? (

@@ -78,6 +78,24 @@ const chatSlice = createSlice({
                 state.currentChatId = null;
             }
         },
+        // Removes the last AI message — used by Regenerate
+        removeLastAiMessage: (state, action) => {
+            const { chatId } = action.payload;
+            if (!state.chats[chatId]) return;
+            const messages = state.chats[chatId].messages;
+            for (let i = messages.length - 1; i >= 0; i--) {
+                if (messages[i].role === "ai") {
+                    messages.splice(i, 1);
+                    break;
+                }
+            }
+        },
+        // Removes all messages from a given index onward — used by Edit message
+        removeMessagesFrom: (state, action) => {
+            const { chatId, fromIndex } = action.payload;
+            if (!state.chats[chatId]) return;
+            state.chats[chatId].messages = state.chats[chatId].messages.slice(0, fromIndex);
+        },
     }
 });
 
@@ -95,6 +113,8 @@ export const {
     setPendingMessage,
     clearPendingMessage,
     removeChat,
+    removeLastAiMessage,
+    removeMessagesFrom,
 } = chatSlice.actions;
 
 export default chatSlice.reducer;
