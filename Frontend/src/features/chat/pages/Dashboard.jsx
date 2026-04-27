@@ -11,7 +11,7 @@ import {
   Plus, Mic, ArrowUp, ChevronDown, MessageSquare, LogOut,
   Trash2, X, FileText, Search, MoreHorizontal, PanelLeftClose,
   PanelLeftOpen, Download, EyeOff, Eye, ChevronRight, Share2,
-  Copy, Check, Link as LinkIcon, Clock,
+  Copy, Check, Link as LinkIcon, Clock, Menu,
 } from "lucide-react";
 
 const MODELS = [
@@ -58,6 +58,7 @@ const Dashboard = () => {
 
   // Sidebar state
   const [sidebarOpen,       setSidebarOpen]       = useState(true);
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [searchQuery,       setSearchQuery]        = useState("");
   const [openMenuChatId,    setOpenMenuChatId]     = useState(null);
   const [dropdownDirection, setDropdownDirection]  = useState("down");
@@ -273,7 +274,7 @@ const Dashboard = () => {
         ${currentChatId === c.id ? "bg-white/10 text-white" : "text-white/50 hover:bg-white/5 hover:text-white"}`}
     >
       <button
-        onClick={() => chat.handleOpenChat(c.id, chats)}
+        onClick={() => { chat.handleOpenChat(c.id, chats); setMobileSidebarOpen(false); }}
         type="button"
         className="flex flex-1 items-center gap-2 min-w-0 text-left cursor-pointer"
       >
@@ -379,8 +380,23 @@ const Dashboard = () => {
     <main className="min-h-screen w-full bg-[#07090f] p-3 text-white md:p-5">
       <section className="mx-auto flex h-[calc(100vh-1.5rem)] w-full gap-4 md:h-[calc(100vh-2.5rem)] md:gap-6">
 
+        {/* ── MOBILE BACKDROP ── */}
+        {mobileSidebarOpen && (
+          <div
+            className="fixed inset-0 z-30 bg-black/60 backdrop-blur-sm md:hidden"
+            onClick={() => setMobileSidebarOpen(false)}
+          />
+        )}
+
         {/* ── SIDEBAR ── */}
-        <aside className={`hidden h-full shrink-0 rounded-3xl bg-[#080b12] p-4 md:flex md:flex-col transition-all duration-300 ${sidebarOpen ? "w-72" : "w-16"}`}>
+        <aside className={`
+          fixed inset-y-0 left-0 z-40 flex h-full flex-col bg-[#080b12] p-4
+          transition-all duration-300 ease-in-out
+          md:relative md:inset-auto md:z-auto md:shrink-0 md:rounded-3xl
+          md:translate-x-0
+          ${mobileSidebarOpen ? "translate-x-0 w-72 rounded-r-3xl shadow-2xl" : "-translate-x-full w-72"}
+          ${sidebarOpen ? "md:w-72" : "md:w-16"}
+        `}>
           {/* Top row */}
           <div className="mb-5 flex items-center justify-between">
             {sidebarOpen && <h1 className="text-2xl font-bold tracking-tight text-white">Cognivra</h1>}
@@ -494,11 +510,21 @@ const Dashboard = () => {
         <section className="relative mx-auto flex h-full min-w-0 flex-1 flex-col overflow-hidden">
 
           {/* Chat header */}
-          {currentChat && (
+          {currentChat ? (
             <div className="flex items-center justify-between px-2 pb-3 pt-1 border-b border-white/5">
-              <div className="flex flex-col min-w-0">
-                <h2 className="truncate text-sm font-semibold text-white/90 max-w-xs md:max-w-md">{currentChat.title}</h2>
-                {currentChat.model && <span className="text-xs text-white/30 capitalize">{currentChat.model}</span>}
+              <div className="flex items-center gap-2 min-w-0">
+                {/* Hamburger — mobile only */}
+                <button
+                  type="button"
+                  onClick={() => setMobileSidebarOpen(true)}
+                  className="flex md:hidden h-8 w-8 shrink-0 items-center justify-center rounded-xl text-white/40 hover:bg-white/5 hover:text-white transition"
+                >
+                  <Menu size={18} />
+                </button>
+                <div className="flex flex-col min-w-0">
+                  <h2 className="truncate text-sm font-semibold text-white/90 max-w-[160px] sm:max-w-xs md:max-w-md">{currentChat.title}</h2>
+                  {currentChat.model && <span className="text-xs text-white/30 capitalize">{currentChat.model}</span>}
+                </div>
               </div>
               <div className="flex items-center gap-2">
                 {/* Share button */}
@@ -521,10 +547,21 @@ const Dashboard = () => {
                 </button>
               </div>
             </div>
+          ) : (
+            /* No chat selected — still show hamburger on mobile */
+            <div className="flex items-center px-2 pb-3 pt-1 md:hidden">
+              <button
+                type="button"
+                onClick={() => setMobileSidebarOpen(true)}
+                className="flex h-8 w-8 items-center justify-center rounded-xl text-white/40 hover:bg-white/5 hover:text-white transition"
+              >
+                <Menu size={18} />
+              </button>
+            </div>
           )}
 
           {/* Messages */}
-          <div className="flex-1 flex flex-col overflow-y-auto pb-40 pt-4 px-2 space-y-4">
+          <div className="messages flex-1 flex flex-col overflow-y-auto pb-44 pt-4 px-2 space-y-4">
             {!currentChatId && (
               <div className="flex flex-1 flex-col items-center justify-center gap-3 text-white/30 h-full">
                 <MessageSquare size={48} strokeWidth={1} />
@@ -582,7 +619,7 @@ const Dashboard = () => {
           </div>
 
           {/* Input footer */}
-          <div className="absolute bottom-2 left-2 right-2">
+          <div className="absolute bottom-0 left-0 right-0 p-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
             <div className="rounded-2xl border border-white/15 bg-[#0e1117] p-3 shadow-xl">
               {fileAttachment && (
                 <div className="mb-2 flex items-center gap-2">
