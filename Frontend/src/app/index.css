@@ -1,5 +1,37 @@
 @import "tailwindcss";
 
+@variant dark (&:where(.dark, .dark *));
+
+/* ── Theme CSS variables ── */
+:root {
+    --bg-primary:    #ffffff;
+    --bg-secondary:  #f4f4f5;
+    --bg-tertiary:   #e4e4e7;
+    --bg-input:      #f9f9f9;
+    --text-primary:  #09090b;
+    --text-secondary:#52525b;
+    --text-muted:    #a1a1aa;
+    --border:        #d4d4d8;
+    --border-subtle: #e4e4e7;
+    --surface:       #ffffff;
+    --surface-hover: #f4f4f5;
+}
+
+.dark {
+    --bg-primary:    #07090f;
+    --bg-secondary:  #0e1117;
+    --bg-tertiary:   #161b27;
+    --bg-input:      #0e1117;
+    --text-primary:  #ffffff;
+    --text-secondary:rgba(255,255,255,0.6);
+    --text-muted:    rgba(255,255,255,0.3);
+    --border:        rgba(255,255,255,0.1);
+    --border-subtle: rgba(255,255,255,0.05);
+    --surface:       rgba(255,255,255,0.05);
+    --surface-hover: rgba(255,255,255,0.08);
+}
+
+/* ── Hide scrollbar for message area ── */
 .messages::-webkit-scrollbar {
     display: none;
 }

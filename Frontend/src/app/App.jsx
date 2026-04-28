@@ -3,26 +3,32 @@ import { router } from "./app.routes"
 import { useAuth } from "../features/auth/hook/useAuth"
 import { useEffect } from "react"
 import { Toaster } from "sonner"
+import { ThemeProvider, useTheme } from "./ThemeContext"
 
+function ToasterWithTheme() {
+    const { theme } = useTheme()
+    return (
+        <Toaster
+            position="top-right"
+            theme={theme}
+            richColors
+        />
+    )
+}
 
 function App() {
+    const auth = useAuth()
 
-  const auth = useAuth()
+    useEffect(() => {
+        auth.handleGetMe()
+    }, [])
 
-  useEffect(() => {
-    auth.handleGetMe()
-  }, [])
-
-  return (
-    <>
-      <Toaster
-        position="top-right"
-        theme="dark"
-        richColors
-      />
-      <RouterProvider router={router} />
-    </>
-  )
+    return (
+        <ThemeProvider>
+            <ToasterWithTheme />
+            <RouterProvider router={router} />
+        </ThemeProvider>
+    )
 }
 
 export default App

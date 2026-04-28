@@ -4,49 +4,41 @@ import { useAuth } from '../hook/useAuth'
 import { useSelector } from 'react-redux'
 import { Navigate } from 'react-router'
 
-
 const Login = () => {
-    const [ email, setEmail ] = useState('')
-    const [ password, setPassword ] = useState('')
+    const [email, setEmail] = useState('')
+    const [password, setPassword] = useState('')
 
     const user = useSelector(state => state.auth.user)
     const loading = useSelector(state => state.auth.loading)
 
     const { handleLogin } = useAuth()
-
     const navigate = useNavigate()
 
     const submitForm = async (event) => {
         event.preventDefault()
-
-        const payload = {
-            email,
-            password,
-        }
-
+        const payload = { email, password }
         await handleLogin(payload)
         navigate("/")
-
     }
 
-    if(!loading && user){
+    if (!loading && user) {
         return <Navigate to="/" replace />
     }
 
     return (
-        <section className="min-h-screen bg-zinc-950 px-4 py-10 text-zinc-100 sm:px-6 lg:px-8">
+        <section className="min-h-screen bg-white dark:bg-zinc-950 px-4 py-10 text-zinc-900 dark:text-zinc-100 sm:px-6 lg:px-8 transition-colors duration-200">
             <div className="mx-auto flex min-h-[85vh] w-full max-w-5xl items-center justify-center">
-                <div className="w-full max-w-md rounded-2xl border border-[#31b8c6]/40 bg-zinc-900/70 p-8 shadow-2xl shadow-black/50 backdrop-blur">
+                <div className="w-full max-w-md rounded-2xl border border-[#31b8c6]/40 bg-zinc-100/70 dark:bg-zinc-900/70 p-8 shadow-2xl shadow-black/10 dark:shadow-black/50 backdrop-blur">
                     <h1 className="text-3xl font-bold text-[#31b8c6]">
                         Welcome Back
                     </h1>
-                    <p className="mt-2 text-sm text-zinc-300">
+                    <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-300">
                         Sign in with your email and password.
                     </p>
 
                     <form onSubmit={submitForm} className="mt-8 space-y-5">
                         <div>
-                            <label htmlFor="email" className="mb-2 block text-sm font-medium text-zinc-200">
+                            <label htmlFor="email" className="mb-2 block text-sm font-medium text-zinc-700 dark:text-zinc-200">
                                 Email
                             </label>
                             <input
@@ -56,12 +48,12 @@ const Login = () => {
                                 onChange={(event) => setEmail(event.target.value)}
                                 placeholder="you@example.com"
                                 required
-                                className="w-full rounded-lg border border-zinc-700 bg-zinc-950/80 px-4 py-3 text-zinc-100 outline-none ring-0 transition focus:border-[#31b8c6] focus:shadow-[0_0_0_3px_rgba(49,184,198,0.25)]"
+                                className="w-full rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-950/80 px-4 py-3 text-zinc-900 dark:text-zinc-100 outline-none ring-0 transition placeholder:text-zinc-400 dark:placeholder:text-zinc-600 focus:border-[#31b8c6] focus:shadow-[0_0_0_3px_rgba(49,184,198,0.25)]"
                             />
                         </div>
 
                         <div>
-                            <label htmlFor="password" className="mb-2 block text-sm font-medium text-zinc-200">
+                            <label htmlFor="password" className="mb-2 block text-sm font-medium text-zinc-700 dark:text-zinc-200">
                                 Password
                             </label>
                             <input
@@ -71,7 +63,7 @@ const Login = () => {
                                 onChange={(event) => setPassword(event.target.value)}
                                 placeholder="Enter your password"
                                 required
-                                className="w-full rounded-lg border border-zinc-700 bg-zinc-950/80 px-4 py-3 text-zinc-100 outline-none ring-0 transition focus:border-[#31b8c6] focus:shadow-[0_0_0_3px_rgba(49,184,198,0.25)]"
+                                className="w-full rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-950/80 px-4 py-3 text-zinc-900 dark:text-zinc-100 outline-none ring-0 transition placeholder:text-zinc-400 dark:placeholder:text-zinc-600 focus:border-[#31b8c6] focus:shadow-[0_0_0_3px_rgba(49,184,198,0.25)]"
                             />
                         </div>
 
@@ -83,7 +75,7 @@ const Login = () => {
                         </button>
                     </form>
 
-                    <p className="mt-6 text-center text-sm text-zinc-300">
+                    <p className="mt-6 text-center text-sm text-zinc-600 dark:text-zinc-300">
                         Don&apos;t have an account?{' '}
                         <Link to="/register" className="font-semibold text-[#31b8c6] transition hover:text-[#45c7d4]">
                             Register
