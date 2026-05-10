@@ -18,7 +18,7 @@ export const initializeSocketConnection = (userId) => {
     // Prevent duplicate connections
     if (socket) return socket;
 
-    socket = io("http://localhost:3000", {
+    socket = io(import.meta.env.VITE_API_URL, {
         withCredentials: true,
     });
 

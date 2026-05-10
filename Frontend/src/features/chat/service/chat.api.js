@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const api = axios.create({
-    baseURL: "http://localhost:3000",
+    baseURL: import.meta.env.VITE_API_URL,
     withCredentials: true,
 })
 
@@ -39,6 +39,6 @@ export const revokeShare = async (chatId) => {
 
 // ── Get a shared chat (public — no auth cookie needed) ──
 export const getSharedChat = async (token) => {
-    const response = await axios.get(`http://localhost:3000/api/chats/shared/${token}`)
+    const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/chats/shared/${token}`)
     return response.data
 }
