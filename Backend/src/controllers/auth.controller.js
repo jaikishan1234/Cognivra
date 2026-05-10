@@ -2,6 +2,11 @@ import userModel from "../models/user.model.js";
 import jwt from "jsonwebtoken";
 import { sendEmail } from "../services/mail.service.js";
 
+const cookieOptions = {
+    httpOnly: true,
+    secure: true,
+    sameSite: "none",
+}
 
 /**
  * @desc Register a new user
@@ -105,8 +110,8 @@ export async function login(req, res) {
         id: user._id,
     }, process.env.JWT_SECRET, { expiresIn: '7d' })
 
-    res.cookie("token", token, { httpOnly: true, maxAge: 15 * 60 * 1000 })
-    res.cookie("refreshToken", refreshToken, { httpOnly: true, maxAge: 7 * 24 * 60 * 60 * 1000 })
+    res.cookie("token", token, { ...cookieOptions, maxAge: 15 * 60 * 1000 })
+    res.cookie("refreshToken", refreshToken, { ...cookieOptions, maxAge: 7 * 24 * 60 * 60 * 1000 })
 
     res.status(200).json({
         message: "Login successful",
@@ -199,8 +204,8 @@ export async function verifyEmail(req, res) {
  * @access Private
  */
 export async function logout(req, res) {
-    res.clearCookie("token");
-    res.clearCookie("refreshToken");
+    res.clearCookie("token", { secure: true, sameSite: "none" });
+    res.clearCookie("refreshToken", { secure: true, sameSite: "none" });
     res.status(200).json({
         message: "Logged out successfully",
         success: true,
@@ -227,7 +232,7 @@ export async function refresh(req, res) {
             username: decoded.username,
         }, process.env.JWT_SECRET, { expiresIn: '15m' })
 
-        res.cookie("token", newToken, { httpOnly: true, maxAge: 15 * 60 * 1000 })
+        res.cookie("token", newToken, { ...cookieOptions, maxAge: 15 * 60 * 1000 })
 
         res.status(200).json({ message: "Token refreshed", success: true })
     } catch (err) {
