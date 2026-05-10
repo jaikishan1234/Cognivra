@@ -5,7 +5,7 @@ import { removeLastAiMessage, removeMessagesFrom } from "../chat.slice.js";
 import { useChat } from "../hooks/useChat";
 import remarkGfm from "remark-gfm";
 import { useAuth } from "../../auth/hook/useAuth";
-import { usePdfExport } from "../hooks/usePdfExport";
+import { usePdfExport } from "../hooks/usePdfExport.js";
 import { shareChat, revokeShare } from "../service/chat.api";
 import UserSettings from "./UserSettings.jsx";
 import { useTheme } from "../../../app/ThemeContext.jsx";
