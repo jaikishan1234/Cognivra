@@ -261,17 +261,37 @@ FRONTEND_URL=""
 
 ## 🔌 API Overview
 
+### Auth — `/api/auth`
+
 | Method | Endpoint | Description | Auth |
 |---|---|---|---|
-| POST | `/api/auth/register` | Register new user | ❌ |
-| POST | `/api/auth/login` | Login & receive JWT | ❌ |
-| GET | `/api/chat` | Fetch all user chats | ✅ |
-| POST | `/api/chat` | Create new chat | ✅ |
-| POST | `/api/chat/:id/message` | Send message to AI | ✅ |
-| GET | `/api/chat/share/:token` | View shared chat (public) | ❌ |
-| PATCH | `/api/user/settings` | Update profile/preferences | ✅ |
+| POST | `/api/auth/register` | Register a new user | ❌ |
+| POST | `/api/auth/login` | Login and receive access token | ❌ |
+| GET | `/api/auth/verify-email?token=` | Verify email address | ❌ |
+| POST | `/api/auth/refresh` | Refresh access token | ❌ |
+| GET | `/api/auth/get-me` | Get current authenticated user | ✅ |
+| POST | `/api/auth/logout` | Logout and clear cookie | ✅ |
 
-> Full API details can be explored via the codebase in `Backend/src/routes/`.
+### Chat — `/api/chat`
+
+| Method | Endpoint | Description | Auth |
+|---|---|---|---|
+| POST | `/api/chat/message` | Send a message (creates chat if new) | ✅ |
+| GET | `/api/chat` | Get all chats for current user | ✅ |
+| GET | `/api/chat/:chatId/messages` | Get all messages in a chat | ✅ |
+| DELETE | `/api/chat/delete/:chatId` | Delete a chat | ✅ |
+| POST | `/api/chat/:chatId/share` | Generate a shareable link | ✅ |
+| POST | `/api/chat/:chatId/revoke` | Revoke a shared link | ✅ |
+| GET | `/api/chat/shared/:token` | View a shared chat (public) | ❌ |
+
+### User — `/api/user`
+
+| Method | Endpoint | Description | Auth |
+|---|---|---|---|
+| POST | `/api/user/update-username` | Update username | ✅ |
+| POST | `/api/user/update-password` | Change password | ✅ |
+
+> Full route definitions live in `Backend/src/routes/`. Controllers are in `Backend/src/controllers/`.
 
 ---
 
