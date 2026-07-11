@@ -69,7 +69,6 @@ function getImageDimensions(base64, mimeType) {
 
 export function usePdfExport() {
   const exportChat = async ({ title, model, messages }) => {
-
     // ── Pre-fetch all images before building PDF ──
     const imageCache = {};
 
@@ -91,7 +90,12 @@ export function usePdfExport() {
 
       if (base64) {
         const dims = await getImageDimensions(base64, mimeType);
-        imageCache[i] = { base64, mimeType, width: dims.width, height: dims.height };
+        imageCache[i] = {
+          base64,
+          mimeType,
+          width: dims.width,
+          height: dims.height,
+        };
       }
     }
 
@@ -162,7 +166,10 @@ export function usePdfExport() {
     pdf.setFont("helvetica", "bold");
     pdf.setFontSize(15);
     pdf.setTextColor(...colors.textPrimary);
-    const titleLines = pdf.splitTextToSize(title || "Untitled Chat", contentWidth);
+    const titleLines = pdf.splitTextToSize(
+      title || "Untitled Chat",
+      contentWidth,
+    );
     pdf.text(titleLines, marginLeft, y);
     y += titleLines.length * 7 + 2;
 
@@ -182,7 +189,9 @@ export function usePdfExport() {
     });
 
     pdf.text(`Model: ${modelLabel}`, marginLeft, y);
-    pdf.text(`Exported: ${exportDate}`, pageWidth - marginRight, y, { align: "right" });
+    pdf.text(`Exported: ${exportDate}`, pageWidth - marginRight, y, {
+      align: "right",
+    });
 
     y += 5;
 
@@ -225,7 +234,8 @@ export function usePdfExport() {
       const pdfIndicatorHeight = isPdf ? 8 : 0;
       const imageBlockHeight = cachedImage ? imgRenderHeight + 6 : 0; // image + label
       const textBlockHeight = lines.length * lineHeight;
-      const bubbleContentHeight = imageBlockHeight + pdfIndicatorHeight + textBlockHeight;
+      const bubbleContentHeight =
+        imageBlockHeight + pdfIndicatorHeight + textBlockHeight;
       const bubbleHeight = bubblePadding * 2 + bubbleContentHeight;
 
       checkPageBreak(5 + bubbleHeight + 6); // label + bubble + gap
@@ -262,7 +272,7 @@ export function usePdfExport() {
         pdf.setFont("helvetica", "italic");
         pdf.setFontSize(7);
         pdf.setTextColor(...colors.textMuted);
-        pdf.text(`📎 ${message.file.name || "image"}`, textX, contentY);
+        pdf.text(`${message.file.name || "image"}`, textX, contentY);
         contentY += 5;
 
         // Center image in bubble
@@ -276,7 +286,7 @@ export function usePdfExport() {
             imgX,
             contentY,
             imgRenderWidth,
-            imgRenderHeight
+            imgRenderHeight,
           );
         } catch (err) {
           pdf.setFont("helvetica", "italic");
@@ -298,15 +308,15 @@ export function usePdfExport() {
           6,
           1.5,
           1.5,
-          "F"
+          "F",
         );
         pdf.setFont("helvetica", "normal");
         pdf.setFontSize(7.5);
         pdf.setTextColor(...colors.textMuted);
         pdf.text(
-          `📄 ${message.file.name || "document.pdf"}  —  PDF attachment (open separately)`,
+          `${message.file.name || "document.pdf"}  —  PDF attachment (open separately)`,
           textX + 2,
-          contentY + 4
+          contentY + 4,
         );
         contentY += pdfIndicatorHeight;
       }
@@ -321,7 +331,8 @@ export function usePdfExport() {
         if (contentY + lineHeight > pageHeight - 14) {
           addPage();
           const remainingLines = lines.slice(li);
-          const newBubbleH = bubblePadding * 2 + remainingLines.length * lineHeight;
+          const newBubbleH =
+            bubblePadding * 2 + remainingLines.length * lineHeight;
           pdf.setFillColor(...(isUser ? colors.userBubble : colors.aiBubble));
           pdf.roundedRect(bubbleX, y, bubbleWidth, newBubbleH, 3, 3, "F");
           if (!isUser) {
@@ -332,7 +343,11 @@ export function usePdfExport() {
           pdf.setFontSize(9.5);
           pdf.setTextColor(...colors.textPrimary);
           for (let rli = 0; rli < remainingLines.length; rli++) {
-            pdf.text(remainingLines[rli], textX, y + bubblePadding + rli * lineHeight);
+            pdf.text(
+              remainingLines[rli],
+              textX,
+              y + bubblePadding + rli * lineHeight,
+            );
           }
           y += newBubbleH + 6;
           contentY = pageHeight; // exit outer loop cleanly
