@@ -30,7 +30,6 @@ export async function register(req, res) {
                     err: "User already exists"
                 })
             }
-            // Unverified duplicate — clear it out so they can register again
             await userModel.deleteOne({ _id: existingUser._id })
         }
 
@@ -40,19 +39,7 @@ export async function register(req, res) {
             email: user.email,
         }, process.env.JWT_SECRET)
 
-        await sendEmail({
-            to: email,
-            subject: "Welcome to Cognivra!",
-            html: `
-                <p>Hi ${username},</p>
-                <p>Thank you for registering at <strong>Cognivra</strong>. We're excited to have you on board!</p>
-                <p>Please verify your email address by clicking the link below:</p>
-                <a href="${process.env.SERVER_URL}/api/auth/verify-email?token=${emailVerificationToken}">Verify Email</a>
-                <p>If you did not create an account, please ignore this email.</p>
-                <p>Best regards,<br>The Cognivra Team</p>
-            `
-        })
-
+        // Respond to the client immediately
         res.status(201).json({
             message: "User registered successfully",
             success: true,
@@ -63,6 +50,22 @@ export async function register(req, res) {
             }
         });
 
+        // Send email AFTER responding — don't block the request on it
+        sendEmail({
+            to: email,
+            subject: "Welcome to Cognivra!",
+            html: `
+                <p>Hi ${username},</p>
+                <p>Thank you for registering at <strong>Cognivra</strong>. We're excited to have you on board!</p>
+                <p>Please verify your email address by clicking the link below:</p>
+                <a href="${process.env.SERVER_URL}/api/auth/verify-email?token=${emailVerificationToken}">Verify Email</a>
+                <p>If you did not create an account, please ignore this email.</p>
+                <p>Best regards,<br>The Cognivra Team</p>
+            `
+        }).catch((err) => {
+            console.error("Failed to send verification email:", err);
+        })
+
     } catch (err) {
         console.error("Register error:", err);
         res.status(500).json({
@@ -72,7 +75,6 @@ export async function register(req, res) {
         })
     }
 }
-
 /**
  * @desc Login user and return JWT token
  * @route POST /api/auth/login
