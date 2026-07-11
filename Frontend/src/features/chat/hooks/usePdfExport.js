@@ -17,6 +17,7 @@ function stripMarkdown(text) {
     .replace(/[-*+]\s+/g, "• ")
     .replace(/\d+\.\s+/g, (m) => m)
     .replace(/\n{3,}/g, "\n\n")
+    .replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{2190}-\u{21FF}\u{2B00}-\u{2BFF}]/gu, "")
     .trim();
 }
 
